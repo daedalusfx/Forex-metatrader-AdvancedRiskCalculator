@@ -59,6 +59,14 @@ private:
     CLabel            m_lbl_lot;
     CLabel            m_lbl_risk_value;
 
+
+        //--- کنترل‌های بخش پراپ (NEW) ---
+    CPanel            m_panel_prop;
+    CLabel            m_lbl_title_prop;
+    CLabel            m_lbl_daily_dd;
+    CLabel            m_lbl_overall_dd;
+    CLabel            m_lbl_profit_target;
+
 public:
                       CPanelDialog(void);
                      ~CPanelDialog(void);
@@ -78,6 +86,7 @@ public:
     
     //--- توابع برای به‌روزرسانی UI از خارج کلاس
     void              UpdateInfoPanel();
+    void              UpdatePropPanel(const string daily_dd, const string overall_dd, const string profit_target);
     void              ResetAllControls();
     void              SetMarketUIMode(ETradeState state);
     void              SetPendingUIMode(ETradeState state);
@@ -89,6 +98,8 @@ protected:
     bool              CreateMarketPanel(int x, int y);
     bool              CreatePendingPanel(int x, int y);
     bool              CreateInfoPanel(int x, int y);
+    bool              CreatePropPanel(int x, int y); // <-- این خط را اضافه کنید
+
 
     //--- مدیریت رویدادهای کلیک
     void              OnClickPrepMarketBuy(void);
@@ -124,20 +135,19 @@ CPanelDialog::~CPanelDialog(void)
 
 
 //--- ایجاد پنل اصلی
+//--- ایجاد پنل اصلی
 bool CPanelDialog::Create(const long chart, const string name, const int subwin, const int x1, const int y1)
 {
-    if(!CAppDialog::Create(chart, name, subwin, x1, y1, x1 + 240, y1 + 310))
+    // --- افزایش ارتفاع کلی پنل برای جای دادن پنل جدید (از 310 به 415) ---
+    if(!CAppDialog::Create(chart, name, subwin, x1, y1, x1 + 240, y1 + 415))
         return(false);
-
-
-   
 
     //--- ایجاد پنل‌های داخلی
     if(!CreateMarketPanel(10, 10)) return(false);
     if(!CreatePendingPanel(10, 115)) return(false);
     if(!CreateInfoPanel(10, 220)) return(false);
-    
-       
+    // --- فراخوانی تابع ساخت پنل پراپ (NEW) ---
+    if(!CreatePropPanel(10, 310)) return(false);
 
     ResetAllControls();
     return(true);
@@ -399,5 +409,44 @@ void CPanelDialog::OnClickExecutePending(void) {
 void CPanelDialog::OnRiskEditChange(void) {
     if(m_current_state != STATE_IDLE) UpdateAllLabels();
 }
+
+void CPanelDialog::UpdatePropPanel(const string daily_dd, const string overall_dd, const string profit_target)
+{
+    m_lbl_daily_dd.Text(daily_dd);
+    m_lbl_overall_dd.Text(overall_dd);
+    m_lbl_profit_target.Text(profit_target);
+}
+
+
+
+
+
+//--- ایجاد پنل پراپ (NEW) ---
+bool CPanelDialog::CreatePropPanel(int x, int y)
+{
+    if(!m_panel_prop.Create(m_chart_id, "PropPanel", m_subwin, x, y, x + 220, y + 90)) return false;
+    m_panel_prop.ColorBackground(C'50, 30, 35'); // رنگ متمایز برای این بخش
+    if(!Add(m_panel_prop)) return false;
+
+    if(!m_lbl_title_prop.Create(m_chart_id, "PropTitle", m_subwin, x+10, y+5, x+210, y+25)) return false;
+    m_lbl_title_prop.Text("Prop Firm Compliance");
+    if(!Add(m_lbl_title_prop)) return false;
+
+    if(!m_lbl_daily_dd.Create(m_chart_id, "DailyDDLbl", m_subwin, x+10, y+25, x+210, y+45)) return false;
+    m_lbl_daily_dd.Text("Daily DD: - / -");
+    if(!Add(m_lbl_daily_dd)) return false;
+
+    if(!m_lbl_overall_dd.Create(m_chart_id, "OverallDDLbl", m_subwin, x+10, y+45, x+210, y+65)) return false;
+    m_lbl_overall_dd.Text("Max DD: - / -");
+    if(!Add(m_lbl_overall_dd)) return false;
+
+    if(!m_lbl_profit_target.Create(m_chart_id, "ProfitTargetLbl", m_subwin, x+10, y+65, x+210, y+85)) return false;
+    m_lbl_profit_target.Text("Profit Target: - / -");
+    if(!Add(m_lbl_profit_target)) return false;
+
+    return true;
+}
+
+
 
 #endif // PANELDIALOG_MQH

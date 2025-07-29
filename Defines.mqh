@@ -51,4 +51,29 @@ double          g_sl_price = 0; // برای حالت حرکت ثابت خطوط 
 double          g_entry_price = 0;
 double          g_tp_price = 0;
 
+
+// --- Prop Firm Rules (NEW) ---
+input group "Prop Firm Rules"
+input bool   InpEnablePropRules        = true;            // فعال‌سازی قوانین پراپ
+input double InpMaxDailyDrawdownPercent  = 5.0;             // حداکثر افت سرمایه روزانه (درصد)
+input double InpMaxOverallDrawdownPercent= 10.0;            // حداکثر افت سرمایه کلی (درصد)
+input double InpProfitTargetPercent      = 8.0;             // هدف سود (درصد)
+
+// نوع محاسبه دراودان روزانه
+enum ENUM_Daily_DD_Base { DD_FROM_BALANCE, DD_FROM_EQUITY };
+input ENUM_Daily_DD_Base InpDailyDDBase = DD_FROM_BALANCE; // مبنای محاسبه: بالانس یا اکوییتی اول روز
+
+// نوع محاسبه دراودان کلی
+enum ENUM_Overall_DD_Type { DD_TYPE_STATIC, DD_TYPE_TRAILING };
+input ENUM_Overall_DD_Type InpOverallDDType = DD_TYPE_STATIC; // نوع محاسبه: ثابت یا شناور
+
+// --- Global variables for Prop Logic (NEW) ---
+bool   g_prop_rules_active = false;      // وضعیت فعال بودن قوانین پراپ در لحظه
+double g_initial_balance = 0;          // بالانس اولیه حساب
+double g_peak_equity = 0;              // بالاترین اکوییتی ثبت شده (برای دراودان شناور)
+double g_start_of_day_base = 0;      // سطح مبنا در شروع روز (بالانس یا اکوییتی)
+datetime g_current_trading_day = 0;      // برای تشخیص روز جدید
+
+
+
 #endif // DEFINES_MQH
