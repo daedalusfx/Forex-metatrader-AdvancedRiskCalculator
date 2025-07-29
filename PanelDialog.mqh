@@ -1,6 +1,6 @@
 //+------------------------------------------------------------------+
 //|                                                  PanelDialog.mqh |
-//|     کلاس اصلی برای مدیریت رابط کاربری با استفاده از کتابخانه استاندارد MQL5     |
+//|     کلاس اصلی برای مدیریت پنل تعاملی (با چیدمان متغیر)     |
 //+------------------------------------------------------------------+
 #ifndef PANELDIALOG_MQH
 #define PANELDIALOG_MQH
@@ -22,7 +22,6 @@ void DeleteTradeLines();
 double GetLinePrice(string line_name);
 void UpdateAutoTPLine();
 bool CalculateLotSize(double entry, double sl, double &lot_size, double &risk_in_money);
-
 
 //--- کلاس اصلی پنل
 class CPanelDialog : public CAppDialog
@@ -50,23 +49,6 @@ private:
     CEdit             m_edit_risk_pending;
     CButton           m_btn_execute_pending;
 
-    //--- کنترل‌های بخش اطلاعات
-    CPanel            m_panel_info;
-    CLabel            m_lbl_spread;
-    CLabel            m_lbl_entry;
-    CLabel            m_lbl_sl;
-    CLabel            m_lbl_tp;
-    CLabel            m_lbl_lot;
-    CLabel            m_lbl_risk_value;
-
-
-        //--- کنترل‌های بخش پراپ (NEW) ---
-    CPanel            m_panel_prop;
-    CLabel            m_lbl_title_prop;
-    CLabel            m_lbl_daily_dd;
-    CLabel            m_lbl_overall_dd;
-    CLabel            m_lbl_profit_target;
-
 public:
                       CPanelDialog(void);
                      ~CPanelDialog(void);
@@ -74,7 +56,6 @@ public:
     virtual bool      Create(const long chart, const string name, const int subwin, const int x1, const int y1);
     //--- مدیریت رویدادها
     virtual bool      OnEvent(const int id,const long &lparam,const double &dparam,const string &sparam);
-    void              OnTick();
     void              HandleDragEvent(const string &dragged_object);
 
     //--- توابع کمکی برای دسترسی به وضعیت
@@ -85,21 +66,15 @@ public:
     string            GetRiskInput(string type);
     
     //--- توابع برای به‌روزرسانی UI از خارج کلاس
-    void              UpdateInfoPanel();
-    void              UpdatePropPanel(const string daily_dd, const string overall_dd, const string profit_target, const color daily_dd_color);
     void              ResetAllControls();
     void              SetMarketUIMode(ETradeState state);
     void              SetPendingUIMode(ETradeState state);
     void              SetExecuteButtonState();
 
-
 protected:
     //--- ایجاد کنترل‌ها
     bool              CreateMarketPanel(int x, int y);
     bool              CreatePendingPanel(int x, int y);
-    bool              CreateInfoPanel(int x, int y);
-    bool              CreatePropPanel(int x, int y); // <-- این خط را اضافه کنید
-
 
     //--- مدیریت رویدادهای کلیک
     void              OnClickPrepMarketBuy(void);
@@ -132,33 +107,25 @@ CPanelDialog::~CPanelDialog(void)
 {
 }
 
-
-
-//--- ایجاد پنل اصلی
 //--- ایجاد پنل اصلی
 bool CPanelDialog::Create(const long chart, const string name, const int subwin, const int x1, const int y1)
 {
-    // --- افزایش ارتفاع کلی پنل برای جای دادن پنل جدید (از 310 به 415) ---
-    if(!CAppDialog::Create(chart, name, subwin, x1, y1, x1 + 240, y1 + 415))
+    if(!CAppDialog::Create(chart, name, subwin, x1, y1, x1 + 240, y1 + 205))
         return(false);
 
-            // --- (NEW) تنظیم رنگ پس زمینه اصلی دیالوگ ---
-  ObjectSetInteger(m_chart_id, m_name + "_background", OBJPROP_BGCOLOR, InpPanelBackgroundColor);
-    //--- ایجاد پنل‌های داخلی
+    ObjectSetInteger(m_chart_id, m_name + "_background", OBJPROP_BGCOLOR, InpPanelBackgroundColor);
+
     if(!CreateMarketPanel(10, 10)) return(false);
-    if(!CreatePendingPanel(10, 115)) return(false);
-    if(!CreateInfoPanel(10, 220)) return(false);
-    // --- فراخوانی تابع ساخت پنل پراپ (NEW) ---
-    if(!CreatePropPanel(10, 310)) return(false);
+    if(!CreatePendingPanel(10, 105)) return(false);
 
     ResetAllControls();
     return(true);
 }
 
-//--- ایجاد پنل Market
+//--- (بازنویسی شده) ایجاد پنل Market با چیدمان متغیر
 bool CPanelDialog::CreateMarketPanel(int x, int y)
 {
-    if(!m_panel_market.Create(m_chart_id, "MarketPanel", m_subwin, x, y, x + 220, y + 95)) return false;
+    if(!m_panel_market.Create(m_chart_id, "MarketPanel", m_subwin, x, y, x + 220, y + 85)) return false;
     m_panel_market.ColorBackground(InpPanelBackgroundColor);
     if(!Add(m_panel_market)) return false;
     
@@ -166,29 +133,39 @@ bool CPanelDialog::CreateMarketPanel(int x, int y)
     m_lbl_title_market.Text("Market Execution");
     if(!Add(m_lbl_title_market)) return false;
 
-    if(!m_btn_prep_market_buy.Create(m_chart_id, "PrepMarketBuy", m_subwin, x+10, y+30, x+100, y+55)) return false;
-    if(!Add(m_btn_prep_market_buy)) return false;
+    // --- محاسبه موقعیت و اندازه دکمه‌ها بر اساس متغیرها ---
+    int current_x = x + 10;
+    int y_pos = y + 30;
 
-    if(!m_btn_prep_market_sell.Create(m_chart_id, "PrepMarketSell", m_subwin, x+120, y+30, x+210, y+55)) return false;
+    // دکمه Buy
+    m_btn_prep_market_buy.Create(m_chart_id, "PrepMarketBuy", m_subwin, current_x, y_pos, current_x + InpButtonWidth, y_pos + InpButtonHeight);
+    if(!Add(m_btn_prep_market_buy)) return false;
+    current_x += InpButtonWidth + InpButtonPadding;
+
+    // دکمه Sell
+    m_btn_prep_market_sell.Create(m_chart_id, "PrepMarketSell", m_subwin, current_x, y_pos, current_x + InpButtonWidth, y_pos + InpButtonHeight);
     if(!Add(m_btn_prep_market_sell)) return false;
+    current_x += InpButtonWidth + InpButtonPadding;
+
+    // دکمه Execute
+    m_btn_execute_market.Create(m_chart_id, "ExecuteMarket", m_subwin, current_x, y_pos, current_x + InpButtonWidth, y_pos + InpButtonHeight);
+    if(!Add(m_btn_execute_market)) return false;
     
-    if(!m_lbl_risk_market.Create(m_chart_id, "RiskMarketLbl", m_subwin, x+10, y+65, x+60, y+85)) return false;
+    // --- ردیف ریسک ---
+    y_pos += InpButtonHeight + 10;
+    if(!m_lbl_risk_market.Create(m_chart_id, "RiskMarketLbl", m_subwin, x+10, y_pos, x+60, y_pos+20)) return false;
     m_lbl_risk_market.Text("Risk %:");
     if(!Add(m_lbl_risk_market)) return false;
-    
-    if(!m_edit_risk_market.Create(m_chart_id, "RiskMarketEdit", m_subwin, x+70, y+62, x+120, y+87)) return false;
+    if(!m_edit_risk_market.Create(m_chart_id, "RiskMarketEdit", m_subwin, x+70, y_pos-2, x+130, y_pos+23)) return false;
     if(!Add(m_edit_risk_market)) return false;
-
-    if(!m_btn_execute_market.Create(m_chart_id, "ExecuteMarket", m_subwin, x+130, y+62, x+210, y+87)) return false;
-    if(!Add(m_btn_execute_market)) return false;
     
     return true;
 }
 
-//--- ایجاد پنل Pending
+//--- (بازنویسی شده) ایجاد پنل Pending با چیدمان متغیر
 bool CPanelDialog::CreatePendingPanel(int x, int y)
 {
-    if(!m_panel_pending.Create(m_chart_id, "PendingPanel", m_subwin, x, y, x + 220, y + 95)) return false;
+    if(!m_panel_pending.Create(m_chart_id, "PendingPanel", m_subwin, x, y, x + 220, y + 85)) return false;
     m_panel_pending.ColorBackground(InpPanelBackgroundColor);
     if(!Add(m_panel_pending)) return false;
     
@@ -196,60 +173,33 @@ bool CPanelDialog::CreatePendingPanel(int x, int y)
     m_lbl_title_pending.Text("Pending Order");
     if(!Add(m_lbl_title_pending)) return false;
 
-    if(!m_btn_prep_pending_buy.Create(m_chart_id, "PrepPendingBuy", m_subwin, x+10, y+30, x+100, y+55)) return false;
+    // --- محاسبه موقعیت و اندازه دکمه‌ها بر اساس متغیرها ---
+    int current_x = x + 10;
+    int y_pos = y + 30;
+
+    // دکمه Buy
+    m_btn_prep_pending_buy.Create(m_chart_id, "PrepPendingBuy", m_subwin, current_x, y_pos, current_x + InpButtonWidth, y_pos + InpButtonHeight);
     if(!Add(m_btn_prep_pending_buy)) return false;
+    current_x += InpButtonWidth + InpButtonPadding;
 
-    if(!m_btn_prep_pending_sell.Create(m_chart_id, "PrepPendingSell", m_subwin, x+120, y+30, x+210, y+55)) return false;
+    // دکمه Sell
+    m_btn_prep_pending_sell.Create(m_chart_id, "PrepPendingSell", m_subwin, current_x, y_pos, current_x + InpButtonWidth, y_pos + InpButtonHeight);
     if(!Add(m_btn_prep_pending_sell)) return false;
+    current_x += InpButtonWidth + InpButtonPadding;
     
-    if(!m_lbl_risk_pending.Create(m_chart_id, "RiskPendingLbl", m_subwin, x+10, y+65, x+60, y+85)) return false;
-    m_lbl_risk_pending.Text("Risk %:");
-    if(!Add(m_lbl_risk_pending)) return false;
-    
-    if(!m_edit_risk_pending.Create(m_chart_id, "RiskPendingEdit", m_subwin, x+70, y+62, x+120, y+87)) return false;
-    if(!Add(m_edit_risk_pending)) return false;
-
-    if(!m_btn_execute_pending.Create(m_chart_id, "ExecutePending", m_subwin, x+130, y+62, x+210, y+87)) return false;
+    // دکمه Place
+    m_btn_execute_pending.Create(m_chart_id, "ExecutePending", m_subwin, current_x, y_pos, current_x + InpButtonWidth, y_pos + InpButtonHeight);
     if(!Add(m_btn_execute_pending)) return false;
 
+    // --- ردیف ریسک ---
+    y_pos += InpButtonHeight + 10;
+    if(!m_lbl_risk_pending.Create(m_chart_id, "RiskPendingLbl", m_subwin, x+10, y_pos, x+60, y_pos+20)) return false;
+    m_lbl_risk_pending.Text("Risk %:");
+    if(!Add(m_lbl_risk_pending)) return false;
+    if(!m_edit_risk_pending.Create(m_chart_id, "RiskPendingEdit", m_subwin, x+70, y_pos-2, x+130, y_pos+23)) return false;
+    if(!Add(m_edit_risk_pending)) return false;
+
     return true;
-}
-
-//--- ایجاد پنل اطلاعات
-bool CPanelDialog::CreateInfoPanel(int x, int y)
-{
-    if(!m_panel_info.Create(m_chart_id, "InfoPanel", m_subwin, x, y, x + 220, y + 80)) return false;
-    m_panel_info.ColorBackground(C'30,35,50'); // رنگ پس‌زمینه متفاوت برای گروه‌بندی
-    if(!Add(m_panel_info)) return false;
-
-    if(!m_lbl_spread.Create(m_chart_id, "SpreadLbl", m_subwin, x+10, y+5, x+100, y+25)) return false;
-    if(!Add(m_lbl_spread)) return false;
-
-    if(!m_lbl_entry.Create(m_chart_id, "EntryLbl", m_subwin, x+10, y+25, x+100, y+45)) return false;
-    if(!Add(m_lbl_entry)) return false;
-    if(!m_lbl_sl.Create(m_chart_id, "SLLbl", m_subwin, x+120, y+25, x+210, y+45)) return false;
-    if(!Add(m_lbl_sl)) return false;
-    
-    if(!m_lbl_tp.Create(m_chart_id, "TPLbl", m_subwin, x+10, y+45, x+100, y+65)) return false;
-    if(!Add(m_lbl_tp)) return false;
-    if(!m_lbl_lot.Create(m_chart_id, "LotLbl", m_subwin, x+120, y+45, x+210, y+65)) return false;
-    if(!Add(m_lbl_lot)) return false;
-    
-    if(!m_lbl_risk_value.Create(m_chart_id, "RiskValueLbl", m_subwin, x+10, y+60, x+210, y+80)) return false;
-    m_lbl_risk_value.FontSize(m_lbl_risk_value.FontSize()-1);
-    if(!Add(m_lbl_risk_value)) return false;
-    
-    return true;
-}
-
-//--- مدیریت رویداد تیک
-void CPanelDialog::OnTick()
-{
-    // محاسبه اسپرد بر حسب پیپ (پوینت)
-    double spread_in_points = (SymbolInfoDouble(_Symbol, SYMBOL_ASK) - SymbolInfoDouble(_Symbol, SYMBOL_BID)) / _Point;
-    
-    // تبدیل عدد اسپرد به رشته با 1 رقم اعشار و تنظیم متن لیبل
-    m_lbl_spread.Text("Spread: " + DoubleToString(spread_in_points, 1));
 }
 
 //--- مدیریت کشیدن خطوط
@@ -275,7 +225,6 @@ void CPanelDialog::ResetAllControls()
     m_is_trade_logic_valid = false;
     DeleteTradeLines();
 
-    //--- بازنشانی بخش Market
     m_btn_prep_market_buy.Text("Market Buy");
     m_btn_prep_market_buy.ColorBackground(InpBuyButtonColor);
     m_btn_prep_market_sell.Text("Market Sell");
@@ -284,7 +233,6 @@ void CPanelDialog::ResetAllControls()
     m_btn_execute_market.ColorBackground(InpDisabledButtonColor);
     m_edit_risk_market.Text(DoubleToString(InpRiskPercent, 1));
 
-    //--- بازنشانی بخش Pending
     m_btn_prep_pending_buy.Text("Pending Buy");
     m_btn_prep_pending_buy.ColorBackground(InpBuyButtonColor);
     m_btn_prep_pending_sell.Text("Pending Sell");
@@ -293,27 +241,7 @@ void CPanelDialog::ResetAllControls()
     m_btn_execute_pending.ColorBackground(InpDisabledButtonColor);
     m_edit_risk_pending.Text(DoubleToString(InpRiskPercent, 1));
     
-    UpdateInfoPanel();
     ChartRedraw();
-}
-
-//--- به‌روزرسانی پنل اطلاعات
-void CPanelDialog::UpdateInfoPanel()
-{
-    double entry = GetLinePrice(LINE_ENTRY_PRICE);
-    double sl = GetLinePrice(LINE_STOP_LOSS);
-    double tp = GetLinePrice(LINE_TAKE_PROFIT);
-    
-    m_lbl_entry.Text("Entry: " + (entry > 0 ? DoubleToString(entry, _Digits) : "-"));
-    m_lbl_sl.Text("SL: " + (sl > 0 ? DoubleToString(sl, _Digits) : "-"));
-    m_lbl_tp.Text("TP: " + (tp > 0 ? DoubleToString(tp, _Digits) : "-"));
-    
-    double lot_size = 0, risk_in_money = 0;
-    if(entry > 0 && sl > 0)
-        CalculateLotSize(entry, sl, lot_size, risk_in_money);
-        
-    m_lbl_lot.Text("Lot: " + DoubleToString(lot_size, 2));
-    m_lbl_risk_value.Text("Risk: " + AccountInfoString(ACCOUNT_CURRENCY) + " " + DoubleToString(risk_in_money, 2));
 }
 
 //--- دریافت مقدار ریسک از فیلد ورودی
@@ -411,52 +339,5 @@ void CPanelDialog::OnClickExecutePending(void) {
 void CPanelDialog::OnRiskEditChange(void) {
     if(m_current_state != STATE_IDLE) UpdateAllLabels();
 }
-
-
-
-
-
-
-//--- ایجاد پنل پراپ (NEW) ---
-bool CPanelDialog::CreatePropPanel(int x, int y)
-{
-    if(!m_panel_prop.Create(m_chart_id, "PropPanel", m_subwin, x, y, x + 220, y + 90)) return false;
-    // --- (CHANGED) استفاده از همان رنگ پنل اطلاعات ---
-    m_panel_prop.ColorBackground(C'30,35,50'); 
-    if(!Add(m_panel_prop)) return false;
-
-    if(!m_lbl_title_prop.Create(m_chart_id, "PropTitle", m_subwin, x+10, y+5, x+210, y+25)) return false;
-    m_lbl_title_prop.Text("Prop Firm Compliance");
-    if(!Add(m_lbl_title_prop)) return false;
-
-    if(!m_lbl_daily_dd.Create(m_chart_id, "DailyDDLbl", m_subwin, x+10, y+25, x+210, y+45)) return false;
-    m_lbl_daily_dd.Text("Daily DD: - / -");
-    if(!Add(m_lbl_daily_dd)) return false;
-
-    if(!m_lbl_overall_dd.Create(m_chart_id, "OverallDDLbl", m_subwin, x+10, y+45, x+210, y+65)) return false;
-    m_lbl_overall_dd.Text("Max DD: - / -");
-    if(!Add(m_lbl_overall_dd)) return false;
-
-    if(!m_lbl_profit_target.Create(m_chart_id, "ProfitTargetLbl", m_subwin, x+10, y+65, x+210, y+85)) return false;
-    m_lbl_profit_target.Text("Profit Target: - / -");
-    if(!Add(m_lbl_profit_target)) return false;
-
-    return true;
-}
-
-
-// این بلوک صحیح را جایگزین کنید
-// In PanelDialog.mqh
-void CPanelDialog::UpdatePropPanel(const string daily_dd, const string overall_dd, const string profit_target, const color daily_dd_color)
-{
-    m_lbl_daily_dd.Text(daily_dd);
-    m_lbl_daily_dd.Color(daily_dd_color);
-    m_lbl_overall_dd.Text(overall_dd);
-    m_lbl_profit_target.Text(profit_target);
-
-    // --- (NEW) دستور برای بازрисов چارت و نمایش تغییرات ---
-    ChartRedraw(m_chart_id);
-}
-
 
 #endif // PANELDIALOG_MQH

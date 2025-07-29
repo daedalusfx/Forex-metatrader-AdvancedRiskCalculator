@@ -4,6 +4,7 @@
 //+------------------------------------------------------------------+
 #ifndef SHAREDLOGIC_MQH
 #define SHAREDLOGIC_MQH
+void UpdateDisplayData();
 
 //--- محاسبه حجم لات
 bool CalculateLotSize(double entry, double sl, double &lot_size, double &risk_in_money)
@@ -139,8 +140,7 @@ void ValidateTradeLogicAndUpdateUI()
 void UpdateAllLabels()
 {
    if(ExtDialog.GetCurrentState() == STATE_IDLE) return;
-   ExtDialog.UpdateInfoPanel();
-   UpdateLineInfoLabels();
+   UpdateDisplayData(); // فراخوانی تابع اصلی آپدیت
    ValidateTradeLogicAndUpdateUI();
 }
 

@@ -33,6 +33,14 @@ input color InpOrderButtonColor    = C'255, 165, 2';     // #ffa502
 input color InpCancelButtonColor   = C'99, 110, 114';    // #636e72
 input color InpDisabledButtonColor = C'83, 92, 104';     // #535c68
 
+// --- (کد جدید) رنگ‌های Canvas و هشدارهای پویا ---
+input color InpPanelSectionColor   = C'30, 34, 43';    // رنگ پس‌زمینه بخش اطلاعات
+input color InpSafeColor           = C'52, 211, 153';   // رنگ حالت امن (سبز)
+input color InpWarningColor        = C'251, 146, 60';  // رنگ حالت هشدار (نارنجی)
+input color InpDangerColor         = C'248, 113, 113';  // رنگ حالت خطر (قرمز)
+
+
+
 input group "Trade Lines Settings"
 input color InpEntryLineColor      = C'238, 238, 238';
 input color InpStopLineColor       = C'252, 57, 57';
@@ -74,6 +82,14 @@ double g_peak_equity = 0;              // بالاترین اکوییتی ثبت
 double g_start_of_day_base = 0;      // سطح مبنا در شروع روز (بالانس یا اکوییتی)
 datetime g_current_trading_day = 0;      // برای تشخیص روز جدید
 
+input group "Display Panel Settings"
+input int InpDisplayPanelX = 260; // موقعیت X پنل نمایش
+input int InpDisplayPanelY = 30;  // موقعیت Y پنل نمایش
+
+input group "UI Layout Settings"
+input int InpButtonWidth   = 90; // عرض دکمه‌ها
+input int InpButtonHeight  = 25; // ارتفاع دکمه‌ها
+input int InpButtonPadding = 8;  // فاصله بین دکمه‌ها
 
 
 #endif // DEFINES_MQH

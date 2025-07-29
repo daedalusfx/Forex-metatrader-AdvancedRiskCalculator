@@ -2,7 +2,7 @@
 //|                                     AdvancedRiskCalculator.mq5 |
 //|                                     Version 1    |
 //+------------------------------------------------------------------+
-#property copyright "Your Name / Gemini"
+#property copyright "daedalusfx"
 #property link      "your.website.com"
 #property version   "2.1"
 #property description "نسخه ۲.۱: رفع خطاهای کامپایل مربوط به وابستگی فایل‌ها."
@@ -14,9 +14,14 @@
 //--- فایل‌های پروژه به ترتیب وابستگی
 #include "Defines.mqh"         // 1. اول تعاریف پایه
 #include "PanelDialog.mqh"     // 2. سپس کلاس اصلی UI
+#include "DisplayCanvas.mqh"   // 3. (جدید) کلاس پنل نمایشی
+
 
 //--- حالا که کلاس تعریف شده، متغیر سراسری آن را ایجاد می‌کنیم
 CPanelDialog ExtDialog;
+
+
+CDisplayCanvas g_DisplayCanvas;
 
 //--- اکنون فایل‌های منطقی را اضافه می‌کنیم که از متغیر ExtDialog استفاده می‌کنند
 #include "Lines.mqh"
@@ -35,7 +40,11 @@ int OnInit()
       return(INIT_FAILED);
    }
    ExtDialog.Run();
-
+   if(!g_DisplayCanvas.Create(0, "DisplayCanvas", 0, InpDisplayPanelX, InpDisplayPanelY, 220, 190))
+   {
+      return(INIT_FAILED);
+   }
+   UpdateDisplayData();
 
       // --- مقداردهی اولیه برای قوانین پراپ (NEW) ---
       if(InpEnablePropRules)
@@ -61,6 +70,7 @@ void OnDeinit(const int reason)
 {
    //--- حذف تمام اشیاء ایجاد شده
    DeleteTradeLines(); // خطوط را دستی حذف می‌کنیم
+   g_DisplayCanvas.Destroy(); // (جدید) حذف پنل نمایشی
    ExtDialog.Destroy(reason);
    Comment("");
 }
@@ -70,12 +80,13 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTick()
 {
-   ExtDialog.OnTick(); // رویداد تیک را به پنل ارسال می‌کنیم
+   // ExtDialog.OnTick(); // این خط حذف شد چون دیگر وجود ندارد
 
-
-      // --- به‌روزرسانی آمار پراپ در هر تیک (NEW) ---
-   UpdatePropStats();
-
+   // شرط if بدون نقطه ویرگول در انتها نوشته می‌شود
+   if(ExtDialog.GetCurrentState() != STATE_IDLE)
+   {
+      UpdateDisplayData();
+   }
 }
 
 //+------------------------------------------------------------------+
@@ -100,50 +111,67 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
 //+------------------------------------------------------------------+
 //|   محاسبه و به‌روزرسانی آمار پراپ (FINAL UI VERSION)              |
 //+------------------------------------------------------------------+
-void UpdatePropStats()
+
+//+------------------------------------------------------------------+
+//|   محاسبه و نقاشی تمام داده‌های نمایشی (نسخه نهایی Canvas)        |
+//+------------------------------------------------------------------+
+void UpdateDisplayData()
 {
-    if(!g_prop_rules_active) return;
+    // --- بخش ۱: جمع‌آوری داده‌های مربوط به معامله ---
+    double spread = (SymbolInfoDouble(_Symbol, SYMBOL_ASK) - SymbolInfoDouble(_Symbol, SYMBOL_BID)) / _Point;
+    double entry_price = GetLinePrice(LINE_ENTRY_PRICE);
+    double sl_price = GetLinePrice(LINE_STOP_LOSS);
+    double tp_price = GetLinePrice(LINE_TAKE_PROFIT);
+    double lot_size = 0, risk_in_money = 0;
+    if(entry_price > 0 && sl_price > 0)
+        CalculateLotSize(entry_price, sl_price, lot_size, risk_in_money);
 
-    long current_day_index = (long)(TimeTradeServer() / 86400);
-    long last_day_index = (long)(g_current_trading_day / 86400);
-    if(current_day_index > last_day_index)
+    // --- بخش ۲: جمع‌آوری داده‌های مربوط به قوانین پراپ ---
+    double daily_buffer = 0, daily_used_pct = 0, overall_buffer = 0, needed_for_target = 0;
+    color daily_color = InpTextColor; // رنگ پیش‌فرض
+
+    if(g_prop_rules_active)
     {
-        g_current_trading_day = TimeTradeServer();
-        g_start_of_day_base = (InpDailyDDBase == DD_FROM_BALANCE) ? AccountInfoDouble(ACCOUNT_BALANCE) : AccountInfoDouble(ACCOUNT_EQUITY);
+        // بررسی روز جدید
+        long current_day_index = (long)(TimeTradeServer() / 86400);
+        long last_day_index = (long)(g_current_trading_day / 86400);
+        if(current_day_index > last_day_index)
+        {
+            g_current_trading_day = TimeTradeServer();
+            g_start_of_day_base = (InpDailyDDBase == DD_FROM_BALANCE) ? AccountInfoDouble(ACCOUNT_BALANCE) : AccountInfoDouble(ACCOUNT_EQUITY);
+        }
+
+        if(InpOverallDDType == DD_TYPE_TRAILING)
+        {
+            g_peak_equity = MathMax(g_peak_equity, AccountInfoDouble(ACCOUNT_EQUITY));
+        }
+
+        double current_equity = AccountInfoDouble(ACCOUNT_EQUITY);
+
+        // محاسبات دراودان روزانه
+        double daily_dd_limit_level = g_start_of_day_base * (1 - InpMaxDailyDrawdownPercent / 100.0);
+        daily_buffer = current_equity - daily_dd_limit_level;
+        double daily_dd_total_allowed = g_start_of_day_base - daily_dd_limit_level;
+        daily_used_pct = (daily_dd_total_allowed > 0.001) ? (1.0 - daily_buffer / daily_dd_total_allowed) * 100.0 : 0;
+        
+        // تنظیم رنگ پویا
+        if(daily_buffer < 0) daily_color = InpDangerColor;
+        else if(daily_used_pct > 85) daily_color = InpDangerColor;
+        else if(daily_used_pct > 60) daily_color = InpWarningColor;
+        else daily_color = InpSafeColor;
+
+        // محاسبات دراودان کلی
+        double overall_dd_base = (InpOverallDDType == DD_TYPE_STATIC) ? g_initial_balance : g_peak_equity;
+        double overall_dd_limit_level = overall_dd_base * (1 - InpMaxOverallDrawdownPercent / 100.0);
+        overall_buffer = current_equity - overall_dd_limit_level;
+
+        // محاسبه هدف سود
+        double profit_target_level = g_initial_balance * (1 + InpProfitTargetPercent / 100.0);
+        needed_for_target = profit_target_level - AccountInfoDouble(ACCOUNT_BALANCE);
     }
-
-    if(InpOverallDDType == DD_TYPE_TRAILING)
-    {
-        g_peak_equity = MathMax(g_peak_equity, AccountInfoDouble(ACCOUNT_EQUITY));
-    }
-
-    double current_equity = AccountInfoDouble(ACCOUNT_EQUITY);
-    string currency = AccountInfoString(ACCOUNT_CURRENCY);
-
-    // --- Daily Drawdown Calculation ---
-    double daily_dd_limit_level = g_start_of_day_base * (1 - InpMaxDailyDrawdownPercent / 100.0);
-    double daily_buffer = current_equity - daily_dd_limit_level;
-    double daily_dd_total_allowed = g_start_of_day_base - daily_dd_limit_level;
-    double daily_dd_used_percent = (daily_dd_total_allowed > 0.001) ? (1.0 - daily_buffer / daily_dd_total_allowed) * 100.0 : 0;
     
-    color daily_color =   C'238, 238, 238';  // Default Text Color
-    if(daily_buffer < 0) daily_color =   C'238, 238, 238';  // Red if violated
-    else if(daily_dd_used_percent > 85) daily_color  = C'238, 238, 238'; // Red
-    else if(daily_dd_used_percent > 60) daily_color =   C'238, 238, 238';  // Orange
-    
-    string daily_dd_text = StringFormat("Daily Room: %s %.2f", currency, daily_buffer);
-
-    // --- Overall Drawdown Calculation ---
-    double overall_dd_base = (InpOverallDDType == DD_TYPE_STATIC) ? g_initial_balance : g_peak_equity;
-    double overall_dd_limit_level = overall_dd_base - (overall_dd_base * InpMaxOverallDrawdownPercent / 100.0);
-    double overall_buffer = current_equity - overall_dd_limit_level;
-    string overall_dd_text = StringFormat("Max Room: %s %.2f", currency, overall_buffer);
-
-    // --- Profit Target Calculation ---
-    double profit_target_level = g_initial_balance * (1 + InpProfitTargetPercent / 100.0);
-    double needed_for_target = profit_target_level - AccountInfoDouble(ACCOUNT_BALANCE);
-    string profit_target_text = (needed_for_target > 0) ? StringFormat("Target Need: %s %.2f", currency, needed_for_target) : "TARGET REACHED!";
-
-    // --- Update the Panel UI with color ---
-    ExtDialog.UpdatePropPanel(daily_dd_text, overall_dd_text, profit_target_text, daily_color);
+    g_DisplayCanvas.Update(spread, entry_price, sl_price, tp_price, lot_size, risk_in_money,
+      daily_buffer, daily_used_pct, daily_color,
+      overall_buffer, needed_for_target);
+ 
 }
