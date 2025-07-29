@@ -96,50 +96,54 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
 
 
 
+// In AdvancedRiskCalculator.mq5
 //+------------------------------------------------------------------+
-//|   محاسبه و به‌روزرسانی آمار پراپ (CORRECTED)                      |
+//|   محاسبه و به‌روزرسانی آمار پراپ (FINAL UI VERSION)              |
 //+------------------------------------------------------------------+
 void UpdatePropStats()
 {
-    // اگر قوانین فعال نیست، خارج شو
     if(!g_prop_rules_active) return;
 
-    // --- 1. بررسی برای روز معاملاتی جدید (روش صحیح) ---
-    // ما زمان سرور را به تعداد روزهای گذشته از سال 1970 تبدیل می‌کنیم
-    long current_day_index = (long)(TimeTradeServer() / 86400); // 86400 = seconds in a day
+    long current_day_index = (long)(TimeTradeServer() / 86400);
     long last_day_index = (long)(g_current_trading_day / 86400);
-
     if(current_day_index > last_day_index)
     {
         g_current_trading_day = TimeTradeServer();
-        // ریست کردن مبنای محاسبه دراودان روزانه
         g_start_of_day_base = (InpDailyDDBase == DD_FROM_BALANCE) ? AccountInfoDouble(ACCOUNT_BALANCE) : AccountInfoDouble(ACCOUNT_EQUITY);
-        Print("New trading day detected. Daily drawdown base has been reset to: ", g_start_of_day_base);
     }
 
-    // --- 2. به‌روزرسانی بالاترین اکوییتی (برای دراودان شناور) ---
     if(InpOverallDDType == DD_TYPE_TRAILING)
     {
         g_peak_equity = MathMax(g_peak_equity, AccountInfoDouble(ACCOUNT_EQUITY));
     }
 
-    // --- 3. انجام محاسبات ---
     double current_equity = AccountInfoDouble(ACCOUNT_EQUITY);
     string currency = AccountInfoString(ACCOUNT_CURRENCY);
 
-    // محاسبه حد ضرر روزانه
-    double daily_dd_limit_level = g_start_of_day_base - (g_start_of_day_base * InpMaxDailyDrawdownPercent / 100.0);
-    string daily_dd_text = StringFormat("Daily DD Limit: %s %.2f", currency, daily_dd_limit_level);
+    // --- Daily Drawdown Calculation ---
+    double daily_dd_limit_level = g_start_of_day_base * (1 - InpMaxDailyDrawdownPercent / 100.0);
+    double daily_buffer = current_equity - daily_dd_limit_level;
+    double daily_dd_total_allowed = g_start_of_day_base - daily_dd_limit_level;
+    double daily_dd_used_percent = (daily_dd_total_allowed > 0.001) ? (1.0 - daily_buffer / daily_dd_total_allowed) * 100.0 : 0;
+    
+    color daily_color =   C'238, 238, 238';  // Default Text Color
+    if(daily_buffer < 0) daily_color =   C'238, 238, 238';  // Red if violated
+    else if(daily_dd_used_percent > 85) daily_color  = C'238, 238, 238'; // Red
+    else if(daily_dd_used_percent > 60) daily_color =   C'238, 238, 238';  // Orange
+    
+    string daily_dd_text = StringFormat("Daily Room: %s %.2f", currency, daily_buffer);
 
-    // محاسبه حد ضرر کلی
+    // --- Overall Drawdown Calculation ---
     double overall_dd_base = (InpOverallDDType == DD_TYPE_STATIC) ? g_initial_balance : g_peak_equity;
     double overall_dd_limit_level = overall_dd_base - (overall_dd_base * InpMaxOverallDrawdownPercent / 100.0);
-    string overall_dd_text = StringFormat("Max DD Limit: %s %.2f", currency, overall_dd_limit_level);
+    double overall_buffer = current_equity - overall_dd_limit_level;
+    string overall_dd_text = StringFormat("Max Room: %s %.2f", currency, overall_buffer);
 
-    // محاسبه هدف سود
+    // --- Profit Target Calculation ---
     double profit_target_level = g_initial_balance * (1 + InpProfitTargetPercent / 100.0);
-    string profit_target_text = StringFormat("Profit Target: %s %.2f", currency, profit_target_level);
-    
-    // --- 4. به‌روزرسانی پنل ---
-    ExtDialog.UpdatePropPanel(daily_dd_text, overall_dd_text, profit_target_text);
+    double needed_for_target = profit_target_level - AccountInfoDouble(ACCOUNT_BALANCE);
+    string profit_target_text = (needed_for_target > 0) ? StringFormat("Target Need: %s %.2f", currency, needed_for_target) : "TARGET REACHED!";
+
+    // --- Update the Panel UI with color ---
+    ExtDialog.UpdatePropPanel(daily_dd_text, overall_dd_text, profit_target_text, daily_color);
 }

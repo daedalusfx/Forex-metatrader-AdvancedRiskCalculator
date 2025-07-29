@@ -86,7 +86,7 @@ public:
     
     //--- توابع برای به‌روزرسانی UI از خارج کلاس
     void              UpdateInfoPanel();
-    void              UpdatePropPanel(const string daily_dd, const string overall_dd, const string profit_target);
+    void              UpdatePropPanel(const string daily_dd, const string overall_dd, const string profit_target, const color daily_dd_color);
     void              ResetAllControls();
     void              SetMarketUIMode(ETradeState state);
     void              SetPendingUIMode(ETradeState state);
@@ -142,6 +142,8 @@ bool CPanelDialog::Create(const long chart, const string name, const int subwin,
     if(!CAppDialog::Create(chart, name, subwin, x1, y1, x1 + 240, y1 + 415))
         return(false);
 
+            // --- (NEW) تنظیم رنگ پس زمینه اصلی دیالوگ ---
+  ObjectSetInteger(m_chart_id, m_name + "_background", OBJPROP_BGCOLOR, InpPanelBackgroundColor);
     //--- ایجاد پنل‌های داخلی
     if(!CreateMarketPanel(10, 10)) return(false);
     if(!CreatePendingPanel(10, 115)) return(false);
@@ -410,12 +412,6 @@ void CPanelDialog::OnRiskEditChange(void) {
     if(m_current_state != STATE_IDLE) UpdateAllLabels();
 }
 
-void CPanelDialog::UpdatePropPanel(const string daily_dd, const string overall_dd, const string profit_target)
-{
-    m_lbl_daily_dd.Text(daily_dd);
-    m_lbl_overall_dd.Text(overall_dd);
-    m_lbl_profit_target.Text(profit_target);
-}
 
 
 
@@ -425,7 +421,8 @@ void CPanelDialog::UpdatePropPanel(const string daily_dd, const string overall_d
 bool CPanelDialog::CreatePropPanel(int x, int y)
 {
     if(!m_panel_prop.Create(m_chart_id, "PropPanel", m_subwin, x, y, x + 220, y + 90)) return false;
-    m_panel_prop.ColorBackground(C'50, 30, 35'); // رنگ متمایز برای این بخش
+    // --- (CHANGED) استفاده از همان رنگ پنل اطلاعات ---
+    m_panel_prop.ColorBackground(C'30,35,50'); 
     if(!Add(m_panel_prop)) return false;
 
     if(!m_lbl_title_prop.Create(m_chart_id, "PropTitle", m_subwin, x+10, y+5, x+210, y+25)) return false;
@@ -447,6 +444,19 @@ bool CPanelDialog::CreatePropPanel(int x, int y)
     return true;
 }
 
+
+// این بلوک صحیح را جایگزین کنید
+// In PanelDialog.mqh
+void CPanelDialog::UpdatePropPanel(const string daily_dd, const string overall_dd, const string profit_target, const color daily_dd_color)
+{
+    m_lbl_daily_dd.Text(daily_dd);
+    m_lbl_daily_dd.Color(daily_dd_color);
+    m_lbl_overall_dd.Text(overall_dd);
+    m_lbl_profit_target.Text(profit_target);
+
+    // --- (NEW) دستور برای بازрисов چارت و نمایش تغییرات ---
+    ChartRedraw(m_chart_id);
+}
 
 
 #endif // PANELDIALOG_MQH
