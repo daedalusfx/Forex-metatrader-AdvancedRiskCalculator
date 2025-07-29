@@ -44,10 +44,9 @@ bool CalculateLotSize(double entry, double sl, double &lot_size, double &risk_in
 }
 
 //--- بررسی ایمنی معامله
-//--- بررسی ایمنی معامله (نسخه نهایی با قوانین پراپ)
 bool IsTradeRequestSafe(double lot_size, ENUM_ORDER_TYPE order_type, double price, double sl, double tp)
 {
-    // 1. بررسی مارجین آزاد (کد اصلی شما)
+    // 1. بررسی مارجین آزاد
     double required_margin = 0;
     if(!OrderCalcMargin(order_type, _Symbol, lot_size, price, required_margin))
     {
@@ -61,7 +60,7 @@ bool IsTradeRequestSafe(double lot_size, ENUM_ORDER_TYPE order_type, double pric
         return false;
     }
 
-    // 2. بررسی سطح توقف (Stops Level) (کد اصلی شما)
+    // 2. بررسی سطح توقف (Stops Level)
     double stops_level = SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL) * _Point;
     if(order_type >= ORDER_TYPE_BUY_LIMIT && order_type <= ORDER_TYPE_SELL_STOP_LIMIT)
     {
@@ -77,23 +76,20 @@ bool IsTradeRequestSafe(double lot_size, ENUM_ORDER_TYPE order_type, double pric
         }
     }
     
-    // --- 3. بررسی قوانین پراپ (NEW LOGIC) ---
+    // --- 3. بررسی قوانین پراپ ---
     if(g_prop_rules_active)
     {
-        // محاسبه میزان ضرر نقدی این معامله در صورت فعال شدن SL
         double potential_loss_on_trade = 0;
         if(!OrderCalcProfit(order_type, _Symbol, lot_size, price, sl, potential_loss_on_trade))
         {
             Alert("Could not calculate potential loss for prop firm check. Error: ", GetLastError());
-            return false; // اگر محاسبه ممکن نیست، معامله را متوقف کن
+            return false;
         }
         potential_loss_on_trade = MathAbs(potential_loss_on_trade);
-
-        // اکوییتی حساب پس از کسر ضرر احتمالی
         double potential_equity_on_loss = AccountInfoDouble(ACCOUNT_EQUITY) - potential_loss_on_trade;
         string currency = AccountInfoString(ACCOUNT_CURRENCY);
 
-        // --- بررسی قانون افت سرمایه روزانه ---
+        // بررسی قانون افت سرمایه روزانه
         double daily_dd_limit_level = g_start_of_day_base * (1 - InpMaxDailyDrawdownPercent / 100.0);
         if(potential_equity_on_loss < daily_dd_limit_level)
         {
@@ -103,7 +99,7 @@ bool IsTradeRequestSafe(double lot_size, ENUM_ORDER_TYPE order_type, double pric
             return false;
         }
 
-        // --- بررسی قانون افت سرمایه کلی ---
+        // بررسی قانون افت سرمایه کلی
         double overall_dd_base = (InpOverallDDType == DD_TYPE_STATIC) ? g_initial_balance : g_peak_equity;
         double overall_dd_limit_level = overall_dd_base * (1 - InpMaxOverallDrawdownPercent / 100.0);
         if(potential_equity_on_loss < overall_dd_limit_level)
@@ -115,7 +111,7 @@ bool IsTradeRequestSafe(double lot_size, ENUM_ORDER_TYPE order_type, double pric
         }
     }
     
-    return true; // اگر تمام بررسی‌ها موفق بود، اجازه معامله صادر می‌شود
+    return true;
 }
 
 //--- اعتبارسنجی منطق معامله و به‌روزرسانی UI
@@ -136,12 +132,14 @@ void ValidateTradeLogicAndUpdateUI()
     ExtDialog.SetExecuteButtonState();
 }
 
-//--- به‌روزرسانی تمام لیبل‌ها
+//--- (اصلاح شده) به‌روزرسانی تمام بخش‌های نمایشی
 void UpdateAllLabels()
 {
    if(ExtDialog.GetCurrentState() == STATE_IDLE) return;
-   UpdateDisplayData(); // فراخوانی تابع اصلی آپدیت
-   ValidateTradeLogicAndUpdateUI();
+   
+   UpdateDisplayData();      // آپدیت پنل Canvas
+   UpdateLineInfoLabels();   // (بازگردانده شده) آپدیت لیبل‌های روی خطوط قیمت
+   ValidateTradeLogicAndUpdateUI(); // آپدیت وضعیت دکمه‌ها
 }
 
 //--- تابع کمکی برای بررسی حالت Pending
