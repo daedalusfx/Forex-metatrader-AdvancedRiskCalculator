@@ -43,9 +43,10 @@ bool CalculateLotSize(double entry, double sl, double &lot_size, double &risk_in
 }
 
 //--- بررسی ایمنی معامله
+//--- بررسی ایمنی معامله (نسخه نهایی با قوانین پراپ)
 bool IsTradeRequestSafe(double lot_size, ENUM_ORDER_TYPE order_type, double price, double sl, double tp)
 {
-    // 1. بررسی مارجین آزاد
+    // 1. بررسی مارجین آزاد (کد اصلی شما)
     double required_margin = 0;
     if(!OrderCalcMargin(order_type, _Symbol, lot_size, price, required_margin))
     {
@@ -59,7 +60,7 @@ bool IsTradeRequestSafe(double lot_size, ENUM_ORDER_TYPE order_type, double pric
         return false;
     }
 
-    // 2. بررسی سطح توقف (Stops Level)
+    // 2. بررسی سطح توقف (Stops Level) (کد اصلی شما)
     double stops_level = SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL) * _Point;
     if(order_type >= ORDER_TYPE_BUY_LIMIT && order_type <= ORDER_TYPE_SELL_STOP_LIMIT)
     {
@@ -75,7 +76,45 @@ bool IsTradeRequestSafe(double lot_size, ENUM_ORDER_TYPE order_type, double pric
         }
     }
     
-    return true;
+    // --- 3. بررسی قوانین پراپ (NEW LOGIC) ---
+    if(g_prop_rules_active)
+    {
+        // محاسبه میزان ضرر نقدی این معامله در صورت فعال شدن SL
+        double potential_loss_on_trade = 0;
+        if(!OrderCalcProfit(order_type, _Symbol, lot_size, price, sl, potential_loss_on_trade))
+        {
+            Alert("Could not calculate potential loss for prop firm check. Error: ", GetLastError());
+            return false; // اگر محاسبه ممکن نیست، معامله را متوقف کن
+        }
+        potential_loss_on_trade = MathAbs(potential_loss_on_trade);
+
+        // اکوییتی حساب پس از کسر ضرر احتمالی
+        double potential_equity_on_loss = AccountInfoDouble(ACCOUNT_EQUITY) - potential_loss_on_trade;
+        string currency = AccountInfoString(ACCOUNT_CURRENCY);
+
+        // --- بررسی قانون افت سرمایه روزانه ---
+        double daily_dd_limit_level = g_start_of_day_base * (1 - InpMaxDailyDrawdownPercent / 100.0);
+        if(potential_equity_on_loss < daily_dd_limit_level)
+        {
+            Alert("TRADE REJECTED: Violates Daily Drawdown Rule.\n",
+                  "If SL hits, equity would be ", StringFormat("%s %.2f", currency, potential_equity_on_loss),
+                  ", which is below the daily limit of ", StringFormat("%s %.2f", currency, daily_dd_limit_level));
+            return false;
+        }
+
+        // --- بررسی قانون افت سرمایه کلی ---
+        double overall_dd_base = (InpOverallDDType == DD_TYPE_STATIC) ? g_initial_balance : g_peak_equity;
+        double overall_dd_limit_level = overall_dd_base * (1 - InpMaxOverallDrawdownPercent / 100.0);
+        if(potential_equity_on_loss < overall_dd_limit_level)
+        {
+            Alert("TRADE REJECTED: Violates Max Overall Drawdown Rule.\n",
+                  "If SL hits, equity would be ", StringFormat("%s %.2f", currency, potential_equity_on_loss),
+                  ", which is below the max limit of ", StringFormat("%s %.2f", currency, overall_dd_limit_level));
+            return false;
+        }
+    }
+    
+    return true; // اگر تمام بررسی‌ها موفق بود، اجازه معامله صادر می‌شود
 }
 
 //--- اعتبارسنجی منطق معامله و به‌روزرسانی UI
