@@ -43,10 +43,13 @@ bool CalculateLotSize(double entry, double sl, double &lot_size, double &risk_in
     return (lot_size > 0);
 }
 
-//--- بررسی ایمنی معامله
+
+//+------------------------------------------------------------------+
+//| (نسخه نهایی و کاملاً اصلاح شده) بررسی ایمنی معامله                 |
+//+------------------------------------------------------------------+
 bool IsTradeRequestSafe(double lot_size, ENUM_ORDER_TYPE order_type, double price, double sl, double tp)
 {
-    // 1. بررسی مارجین آزاد
+    // --- 1. بررسی‌های اولیه (مارجین و ...) ---
     double required_margin = 0;
     if(!OrderCalcMargin(order_type, _Symbol, lot_size, price, required_margin))
     {
@@ -59,8 +62,6 @@ bool IsTradeRequestSafe(double lot_size, ENUM_ORDER_TYPE order_type, double pric
         Alert("Not enough free margin. Required: ", DoubleToString(required_margin, 2), ", Available: ", DoubleToString(free_margin, 2));
         return false;
     }
-
-    // 2. بررسی سطح توقف (Stops Level)
     double stops_level = SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL) * _Point;
     if(order_type >= ORDER_TYPE_BUY_LIMIT && order_type <= ORDER_TYPE_SELL_STOP_LIMIT)
     {
@@ -76,25 +77,57 @@ bool IsTradeRequestSafe(double lot_size, ENUM_ORDER_TYPE order_type, double pric
         }
     }
     
-    // --- 3. بررسی قوانین پراپ ---
+    // --- 2. شبیه‌سازی بدترین حالت برای قوانین پراپ ---
     if(g_prop_rules_active)
     {
-        double potential_loss_on_trade = 0;
-        if(!OrderCalcProfit(order_type, _Symbol, lot_size, price, sl, potential_loss_on_trade))
+        double total_potential_loss = 0;
+        
+        // ابتدا ضرر بالقوه معامله جدید را اضافه می‌کنیم
+        double new_trade_loss = 0;
+        if(OrderCalcProfit(order_type, _Symbol, lot_size, price, sl, new_trade_loss))
         {
-            Alert("Could not calculate potential loss for prop firm check. Error: ", GetLastError());
+            total_potential_loss += MathAbs(new_trade_loss);
+        }
+        else
+        {
+            Alert("Could not calculate potential loss for the new trade. Request rejected.");
             return false;
         }
-        potential_loss_on_trade = MathAbs(potential_loss_on_trade);
-        double potential_equity_on_loss = AccountInfoDouble(ACCOUNT_EQUITY) - potential_loss_on_trade;
+
+        // سپس ضرر بالقوه تمام معاملات باز فعلی با همان مجیک نامبر را اضافه می‌کنیم
+        for(int i = PositionsTotal() - 1; i >= 0; i--)
+        {
+            if(PositionGetInteger(POSITION_MAGIC) == g_magic_number)
+            {
+                // (جدید) دریافت نمادِ معامله باز
+                string pos_symbol = PositionGetString(POSITION_SYMBOL); 
+                double open_price = PositionGetDouble(POSITION_PRICE_OPEN);
+                double stop_loss = PositionGetDouble(POSITION_SL);
+                double volume = PositionGetDouble(POSITION_VOLUME);
+                long type = PositionGetInteger(POSITION_TYPE);
+                
+                double existing_trade_loss = 0;
+                if(stop_loss > 0)
+                {
+                    // (اصلاح شده) استفاده از نماد صحیح معامله باز شده در محاسبه
+                    OrderCalcProfit((ENUM_ORDER_TYPE)type, pos_symbol, volume, open_price, stop_loss, existing_trade_loss);
+                    total_potential_loss += MathAbs(existing_trade_loss);
+                }
+            }
+        }
+        
+        // محاسبه اکوئیتی نهایی در بدترین حالت
+        // این محاسبه درست است: بالانس فعلی منهای مجموع تمام ریسک‌های تعریف شده (از نقطه ورود تا استاپ)
+        double worst_case_balance = AccountInfoDouble(ACCOUNT_BALANCE) - total_potential_loss;
+        
         string currency = AccountInfoString(ACCOUNT_CURRENCY);
 
         // بررسی قانون افت سرمایه روزانه
         double daily_dd_limit_level = g_start_of_day_base * (1 - InpMaxDailyDrawdownPercent / 100.0);
-        if(potential_equity_on_loss < daily_dd_limit_level)
+        if(worst_case_balance < daily_dd_limit_level)
         {
-            Alert("TRADE REJECTED: Violates Daily Drawdown Rule.\n",
-                  "If SL hits, equity would be ", StringFormat("%s %.2f", currency, potential_equity_on_loss),
+            Alert("TRADE REJECTED: Cumulative risk violates Daily Drawdown Rule.\n",
+                  "If all SLs hit, balance would be ", StringFormat("%s %.2f", currency, worst_case_balance),
                   ", which is below the daily limit of ", StringFormat("%s %.2f", currency, daily_dd_limit_level));
             return false;
         }
@@ -102,55 +135,19 @@ bool IsTradeRequestSafe(double lot_size, ENUM_ORDER_TYPE order_type, double pric
         // بررسی قانون افت سرمایه کلی
         double overall_dd_base = (InpOverallDDType == DD_TYPE_STATIC) ? g_initial_balance : g_peak_equity;
         double overall_dd_limit_level = overall_dd_base * (1 - InpMaxOverallDrawdownPercent / 100.0);
-        if(potential_equity_on_loss < overall_dd_limit_level)
+        if(worst_case_balance < overall_dd_limit_level)
         {
-            Alert("TRADE REJECTED: Violates Max Overall Drawdown Rule.\n",
-                  "If SL hits, equity would be ", StringFormat("%s %.2f", currency, potential_equity_on_loss),
+            Alert("TRADE REJECTED: Cumulative risk violates Max Overall Drawdown Rule.\n",
+                  "If all SLs hit, balance would be ", StringFormat("%s %.2f", currency, worst_case_balance),
                   ", which is below the max limit of ", StringFormat("%s %.2f", currency, overall_dd_limit_level));
             return false;
         }
     }
-
-// --- 4. بررسی قانون ثبات (Consistency Rule) ---
-if(g_prop_rules_active && InpEnableConsistencyRule)
-{
-    // محاسبه سود امروز بر اساس اکوئیتی فعلی
-    double todays_profit = AccountInfoDouble(ACCOUNT_EQUITY) - g_start_of_day_base;
-    if(todays_profit <= 0) // اگر امروز سودی نکرده‌ایم، نیازی به بررسی نیست
-    {
-        // Do nothing, no need to check
-    }
-    else
-    {
-        // محاسبه کل سود ثبت شده در روزهای گذشته
-        double total_past_profit = 0;
-        for(int i = 0; i < ArraySize(g_daily_profits); i++)
-        {
-            if(g_daily_profits[i].profit > 0)
-                total_past_profit += g_daily_profits[i].profit;
-        }
-
-        // کل سود = سود روزهای گذشته + سود امروز
-        double total_profit = total_past_profit + todays_profit;
-        if(total_profit > 0)
-        {
-            double today_contribution_pct = (todays_profit / total_profit) * 100.0;
-
-            // اگر سهم سود امروز از حد مجاز بیشتر شود، معامله جدید را مسدود کن
-            if(today_contribution_pct > InpConsistencyRulePercent)
-            {
-                Alert("TRADE REJECTED: Violates Consistency Rule.\n",
-                      "Today's profit contribution (", DoubleToString(today_contribution_pct, 1),
-                      "%) exceeds the allowed limit of ", DoubleToString(InpConsistencyRulePercent, 1), "%.");
-                return false;
-            }
-        }
-    }
-}
-
     
     return true;
 }
+
+
 
 //--- اعتبارسنجی منطق معامله و به‌روزرسانی UI
 void ValidateTradeLogicAndUpdateUI()
