@@ -110,6 +110,44 @@ bool IsTradeRequestSafe(double lot_size, ENUM_ORDER_TYPE order_type, double pric
             return false;
         }
     }
+
+// --- 4. بررسی قانون ثبات (Consistency Rule) ---
+if(g_prop_rules_active && InpEnableConsistencyRule)
+{
+    // محاسبه سود امروز بر اساس اکوئیتی فعلی
+    double todays_profit = AccountInfoDouble(ACCOUNT_EQUITY) - g_start_of_day_base;
+    if(todays_profit <= 0) // اگر امروز سودی نکرده‌ایم، نیازی به بررسی نیست
+    {
+        // Do nothing, no need to check
+    }
+    else
+    {
+        // محاسبه کل سود ثبت شده در روزهای گذشته
+        double total_past_profit = 0;
+        for(int i = 0; i < ArraySize(g_daily_profits); i++)
+        {
+            if(g_daily_profits[i].profit > 0)
+                total_past_profit += g_daily_profits[i].profit;
+        }
+
+        // کل سود = سود روزهای گذشته + سود امروز
+        double total_profit = total_past_profit + todays_profit;
+        if(total_profit > 0)
+        {
+            double today_contribution_pct = (todays_profit / total_profit) * 100.0;
+
+            // اگر سهم سود امروز از حد مجاز بیشتر شود، معامله جدید را مسدود کن
+            if(today_contribution_pct > InpConsistencyRulePercent)
+            {
+                Alert("TRADE REJECTED: Violates Consistency Rule.\n",
+                      "Today's profit contribution (", DoubleToString(today_contribution_pct, 1),
+                      "%) exceeds the allowed limit of ", DoubleToString(InpConsistencyRulePercent, 1), "%.");
+                return false;
+            }
+        }
+    }
+}
+
     
     return true;
 }

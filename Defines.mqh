@@ -66,6 +66,9 @@ input bool   InpEnablePropRules        = true;            // فعال‌سازی
 input double InpMaxDailyDrawdownPercent  = 5.0;             // حداکثر افت سرمایه روزانه (درصد)
 input double InpMaxOverallDrawdownPercent= 10.0;            // حداکثر افت سرمایه کلی (درصد)
 input double InpProfitTargetPercent      = 8.0;             // هدف سود (درصد)
+input bool   InpEnableConsistencyRule  = true;            // فعال‌سازی قانون ثبات
+input double InpConsistencyRulePercent = 40.0;            // حداکثر سهم سود یک روز (درصد)
+
 
 // نوع محاسبه دراودان روزانه
 enum ENUM_Daily_DD_Base { DD_FROM_BALANCE, DD_FROM_EQUITY };
@@ -90,6 +93,17 @@ input group "UI Layout Settings"
 input int InpButtonWidth   = 90; // عرض دکمه‌ها
 input int InpButtonHeight  = 25; // ارتفاع دکمه‌ها
 input int InpButtonPadding = 8;  // فاصله بین دکمه‌ها
+
+
+
+
+// --- Consistency Rule Logic (NEW) ---
+struct DailyProfitLog
+{
+    datetime date;      // تاریخ روز معاملاتی
+    double   profit;    // سود ثبت شده برای آن روز
+};
+DailyProfitLog g_daily_profits[]; // آرایه داینامیک برای نگهداری تاریخچه سود
 
 
 #endif // DEFINES_MQH

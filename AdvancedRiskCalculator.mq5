@@ -138,11 +138,27 @@ void UpdateDisplayData()
         // بررسی روز جدید
         long current_day_index = (long)(TimeTradeServer() / 86400);
         long last_day_index = (long)(g_current_trading_day / 86400);
-        if(current_day_index > last_day_index)
-        {
-            g_current_trading_day = TimeTradeServer();
-            g_start_of_day_base = (InpDailyDDBase == DD_FROM_BALANCE) ? AccountInfoDouble(ACCOUNT_BALANCE) : AccountInfoDouble(ACCOUNT_EQUITY);
-        }
+      if(current_day_index > last_day_index)
+{
+    // --- (NEW) Calculate and log previous day's profit ---
+    if(InpEnableConsistencyRule)
+    {
+        // The profit is the change in the base equity/balance from start to end of the day
+        double end_of_day_base = (InpDailyDDBase == DD_FROM_BALANCE) ? AccountInfoDouble(ACCOUNT_BALANCE) : AccountInfoDouble(ACCOUNT_EQUITY);
+        double previous_day_profit = end_of_day_base - g_start_of_day_base;
+
+        // Add to our log array
+        int new_size = ArraySize(g_daily_profits) + 1;
+        ArrayResize(g_daily_profits, new_size);
+        g_daily_profits[new_size - 1].date = g_current_trading_day;
+        g_daily_profits[new_size - 1].profit = previous_day_profit;
+    }
+
+    // --- Now, reset for the new day ---
+    g_current_trading_day = TimeTradeServer();
+    g_start_of_day_base = (InpDailyDDBase == DD_FROM_BALANCE) ? AccountInfoDouble(ACCOUNT_BALANCE) : AccountInfoDouble(ACCOUNT_EQUITY);
+}
+
 
         if(InpOverallDDType == DD_TYPE_TRAILING)
         {
