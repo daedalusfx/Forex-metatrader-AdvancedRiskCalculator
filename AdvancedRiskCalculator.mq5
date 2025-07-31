@@ -16,6 +16,8 @@
 #include "PanelDialog.mqh"     // 2. سپس کلاس اصلی UI
 #include "DisplayCanvas.mqh"   // 3. (جدید) کلاس پنل نمایشی
 #include "StateManager.mqh"
+#include "SpreadAtrAnalysis.mqh" 
+
 
 
 //--- حالا که کلاس تعریف شده، متغیر سراسری آن را ایجاد می‌کنیم
@@ -23,6 +25,7 @@ CPanelDialog ExtDialog;
 
 
 CDisplayCanvas g_DisplayCanvas;
+CSpreadAtrAnalysis g_SpreadAtrPanel;
 
 //--- اکنون فایل‌های منطقی را اضافه می‌کنیم که از متغیر ExtDialog استفاده می‌کنند
 #include "Lines.mqh"
@@ -45,6 +48,8 @@ int OnInit()
    {
       return(INIT_FAILED);
    }
+
+   g_SpreadAtrPanel.Initialize(CORNER_RIGHT_UPPER, 15, 30);
 
    // --- 2. مقداردهی اولیه متغیرهای اصلی ---
    InitializeMagicNumber(); // تضمین می‌کند که g_magic_number مقداردهی شده (خوانده شده یا جدید)
@@ -106,6 +111,7 @@ void OnDeinit(const int reason)
    //--- حذف تمام اشیاء ایجاد شده
    SaveStateToFile(); 
    DeleteTradeLines(); // خطوط را دستی حذف می‌کنیم
+   g_SpreadAtrPanel.Deinitialize();
    g_DisplayCanvas.Destroy(); // (جدید) حذف پنل نمایشی
    ExtDialog.Destroy(reason);
    Comment("");
@@ -119,6 +125,7 @@ void OnTick()
    double spread = (SymbolInfoDouble(_Symbol, SYMBOL_ASK) - SymbolInfoDouble(_Symbol, SYMBOL_BID)) / _Point;
    g_DisplayCanvas.UpdateSpread(spread);
 
+   g_SpreadAtrPanel.Update(); 
    // شرط if بدون نقطه ویرگول در انتها نوشته می‌شود
    if(ExtDialog.GetCurrentState() != STATE_IDLE)
    {
