@@ -1,6 +1,6 @@
 //+------------------------------------------------------------------+
 //|                                                  PanelDialog.mqh |
-//|     کلاس اصلی برای مدیریت پنل تعاملی (با چیدمان متغیر)     |
+//|     کلاس اصلی برای مدیریت پنل تعاملی (نسخه نهایی)     |
 //+------------------------------------------------------------------+
 #ifndef PANELDIALOG_MQH
 #define PANELDIALOG_MQH
@@ -110,11 +110,13 @@ CPanelDialog::~CPanelDialog(void)
 //--- ایجاد پنل اصلی
 bool CPanelDialog::Create(const long chart, const string name, const int subwin, const int x1, const int y1)
 {
+    // ارتفاع پنل را برای جا دادن دو بخش تعاملی تنظیم می‌کنیم
     if(!CAppDialog::Create(chart, name, subwin, x1, y1, x1 + 240, y1 + 205))
         return(false);
 
     ObjectSetInteger(m_chart_id, m_name + "_background", OBJPROP_BGCOLOR, InpPanelBackgroundColor);
 
+    //--- ایجاد پنل‌های داخلی
     if(!CreateMarketPanel(10, 10)) return(false);
     if(!CreatePendingPanel(10, 105)) return(false);
 
@@ -122,7 +124,7 @@ bool CPanelDialog::Create(const long chart, const string name, const int subwin,
     return(true);
 }
 
-//--- (بازنویسی شده) ایجاد پنل Market با چیدمان متغیر
+//--- (اصلاح شده) ایجاد پنل Market با چیدمان جدید
 bool CPanelDialog::CreateMarketPanel(int x, int y)
 {
     if(!m_panel_market.Create(m_chart_id, "MarketPanel", m_subwin, x, y, x + 220, y + 85)) return false;
@@ -133,36 +135,25 @@ bool CPanelDialog::CreateMarketPanel(int x, int y)
     m_lbl_title_market.Text("Market Execution");
     if(!Add(m_lbl_title_market)) return false;
 
-    // --- محاسبه موقعیت و اندازه دکمه‌ها بر اساس متغیرها ---
-    int current_x = x + 10;
-    int y_pos = y + 30;
-
-    // دکمه Buy
-    m_btn_prep_market_buy.Create(m_chart_id, "PrepMarketBuy", m_subwin, current_x, y_pos, current_x + InpButtonWidth, y_pos + InpButtonHeight);
+    // ردیف دکمه‌ها
+    if(!m_btn_prep_market_buy.Create(m_chart_id, "PrepMarketBuy", m_subwin, x+10, y+30, x+70, y+55)) return false;
     if(!Add(m_btn_prep_market_buy)) return false;
-    current_x += InpButtonWidth + InpButtonPadding;
-
-    // دکمه Sell
-    m_btn_prep_market_sell.Create(m_chart_id, "PrepMarketSell", m_subwin, current_x, y_pos, current_x + InpButtonWidth, y_pos + InpButtonHeight);
+    if(!m_btn_prep_market_sell.Create(m_chart_id, "PrepMarketSell", m_subwin, x+75, y+30, x+135, y+55)) return false;
     if(!Add(m_btn_prep_market_sell)) return false;
-    current_x += InpButtonWidth + InpButtonPadding;
-
-    // دکمه Execute
-    m_btn_execute_market.Create(m_chart_id, "ExecuteMarket", m_subwin, current_x, y_pos, current_x + InpButtonWidth, y_pos + InpButtonHeight);
+    if(!m_btn_execute_market.Create(m_chart_id, "ExecuteMarket", m_subwin, x+140, y+30, x+210, y+55)) return false;
     if(!Add(m_btn_execute_market)) return false;
     
-    // --- ردیف ریسک ---
-    y_pos += InpButtonHeight + 10;
-    if(!m_lbl_risk_market.Create(m_chart_id, "RiskMarketLbl", m_subwin, x+10, y_pos, x+60, y_pos+20)) return false;
+    // ردیف ریسک
+    if(!m_lbl_risk_market.Create(m_chart_id, "RiskMarketLbl", m_subwin, x+10, y+60, x+60, y+80)) return false;
     m_lbl_risk_market.Text("Risk %:");
     if(!Add(m_lbl_risk_market)) return false;
-    if(!m_edit_risk_market.Create(m_chart_id, "RiskMarketEdit", m_subwin, x+70, y_pos-2, x+130, y_pos+23)) return false;
+    if(!m_edit_risk_market.Create(m_chart_id, "RiskMarketEdit", m_subwin, x+70, y+58, x+130, y+83)) return false;
     if(!Add(m_edit_risk_market)) return false;
     
     return true;
 }
 
-//--- (بازنویسی شده) ایجاد پنل Pending با چیدمان متغیر
+//--- (اصلاح شده) ایجاد پنل Pending با چیدمان جدید
 bool CPanelDialog::CreatePendingPanel(int x, int y)
 {
     if(!m_panel_pending.Create(m_chart_id, "PendingPanel", m_subwin, x, y, x + 220, y + 85)) return false;
@@ -173,30 +164,19 @@ bool CPanelDialog::CreatePendingPanel(int x, int y)
     m_lbl_title_pending.Text("Pending Order");
     if(!Add(m_lbl_title_pending)) return false;
 
-    // --- محاسبه موقعیت و اندازه دکمه‌ها بر اساس متغیرها ---
-    int current_x = x + 10;
-    int y_pos = y + 30;
-
-    // دکمه Buy
-    m_btn_prep_pending_buy.Create(m_chart_id, "PrepPendingBuy", m_subwin, current_x, y_pos, current_x + InpButtonWidth, y_pos + InpButtonHeight);
+    // ردیف دکمه‌ها
+    if(!m_btn_prep_pending_buy.Create(m_chart_id, "PrepPendingBuy", m_subwin, x+10, y+30, x+70, y+55)) return false;
     if(!Add(m_btn_prep_pending_buy)) return false;
-    current_x += InpButtonWidth + InpButtonPadding;
-
-    // دکمه Sell
-    m_btn_prep_pending_sell.Create(m_chart_id, "PrepPendingSell", m_subwin, current_x, y_pos, current_x + InpButtonWidth, y_pos + InpButtonHeight);
+    if(!m_btn_prep_pending_sell.Create(m_chart_id, "PrepPendingSell", m_subwin, x+75, y+30, x+135, y+55)) return false;
     if(!Add(m_btn_prep_pending_sell)) return false;
-    current_x += InpButtonWidth + InpButtonPadding;
-    
-    // دکمه Place
-    m_btn_execute_pending.Create(m_chart_id, "ExecutePending", m_subwin, current_x, y_pos, current_x + InpButtonWidth, y_pos + InpButtonHeight);
+    if(!m_btn_execute_pending.Create(m_chart_id, "ExecutePending", m_subwin, x+140, y+30, x+210, y+55)) return false;
     if(!Add(m_btn_execute_pending)) return false;
 
-    // --- ردیف ریسک ---
-    y_pos += InpButtonHeight + 10;
-    if(!m_lbl_risk_pending.Create(m_chart_id, "RiskPendingLbl", m_subwin, x+10, y_pos, x+60, y_pos+20)) return false;
+    // ردیف ریسک
+    if(!m_lbl_risk_pending.Create(m_chart_id, "RiskPendingLbl", m_subwin, x+10, y+60, x+60, y+80)) return false;
     m_lbl_risk_pending.Text("Risk %:");
     if(!Add(m_lbl_risk_pending)) return false;
-    if(!m_edit_risk_pending.Create(m_chart_id, "RiskPendingEdit", m_subwin, x+70, y_pos-2, x+130, y_pos+23)) return false;
+    if(!m_edit_risk_pending.Create(m_chart_id, "RiskPendingEdit", m_subwin, x+70, y+58, x+130, y+83)) return false;
     if(!Add(m_edit_risk_pending)) return false;
 
     return true;
@@ -225,6 +205,7 @@ void CPanelDialog::ResetAllControls()
     m_is_trade_logic_valid = false;
     DeleteTradeLines();
 
+    //--- بازنشانی بخش Market
     m_btn_prep_market_buy.Text("Market Buy");
     m_btn_prep_market_buy.ColorBackground(InpBuyButtonColor);
     m_btn_prep_market_sell.Text("Market Sell");
@@ -233,6 +214,7 @@ void CPanelDialog::ResetAllControls()
     m_btn_execute_market.ColorBackground(InpDisabledButtonColor);
     m_edit_risk_market.Text(DoubleToString(InpRiskPercent, 1));
 
+    //--- بازنشانی بخش Pending
     m_btn_prep_pending_buy.Text("Pending Buy");
     m_btn_prep_pending_buy.ColorBackground(InpBuyButtonColor);
     m_btn_prep_pending_sell.Text("Pending Sell");
