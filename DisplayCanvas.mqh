@@ -76,6 +76,12 @@ void CDisplayCanvas::Update(double spread, double entry, double sl, double tp, d
     m_canvas.TextOut(120, 25, "SL: " + (sl > 0 ? DoubleToString(sl, _Digits) : "-"), InpTextColor);
     m_canvas.TextOut(10, 45, "TP: " + (tp > 0 ? DoubleToString(tp, _Digits) : "-"), InpTextColor);
     m_canvas.TextOut(10, 65, StringFormat("Risk: %s %.2f", currency, risk_money), InpTextColor);
+
+
+    m_canvas.FillRectangle(10, 85, 210, 86, C'99,110,114'); // A thin grey line
+
+
+
     // --- بخش پراپ فرم ---
     m_canvas.FontSet("Tahoma", 12, FW_BOLD);
     m_canvas.TextOut(10, 95, "Prop Firm Compliance", InpOrderButtonColor);
