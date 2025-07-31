@@ -24,7 +24,7 @@ public:
     void              Destroy(void);
     void              Update(double spread, double entry, double sl, double tp, double lot, double risk_money,
                              double daily_buffer, double daily_used_pct, color daily_color,
-                             double overall_buffer, double needed_for_target,double overall_used_pct);
+                             double overall_buffer, double needed_for_target,double overall_used_pct , double profit_target_progress_pct);
 };
 
 //--- سازنده
@@ -61,7 +61,7 @@ void CDisplayCanvas::Destroy(void)
 //--- تابع اصلی برای نقاشی تمام اطلاعات روی بوم
 void CDisplayCanvas::Update(double spread, double entry, double sl, double tp, double lot, double risk_money,
                               double daily_buffer, double daily_used_pct, color daily_color,
-                              double overall_buffer, double needed_for_target, double overall_used_pct)
+                              double overall_buffer, double needed_for_target, double overall_used_pct , double profit_target_progress_pct)
 {
     // پاک کردن کامل بوم قبل از هر نقاشی جدید
     m_canvas.Erase(InpPanelSectionColor);
@@ -111,9 +111,29 @@ void CDisplayCanvas::Update(double spread, double entry, double sl, double tp, d
         m_canvas.FillRectangle(10, 165, 10 + overall_bar_width, 175, InpWarningColor); // Filled bar (e.g., in warning color)
 
         // Profit Target (moved down a bit)
-        string target_text = (needed_for_target > 0) ?
-                            StringFormat("Target Need: %s %.2f", currency, needed_for_target) : "TARGET REACHED!";
-        m_canvas.TextOut(10, 185, target_text, InpProfitLineColor);
+        // string target_text = (needed_for_target > 0) ?
+        //                     StringFormat("Target Need: %s %.2f", currency, needed_for_target) : "TARGET REACHED!";
+        // m_canvas.TextOut(10, 185, target_text, InpProfitLineColor);
+
+
+        // --- Profit Target Progress ---
+            string target_label_text = (needed_for_target > 0) ? "Profit Target:" : "TARGET REACHED!";
+            m_canvas.TextOut(10, 182, target_label_text, InpProfitLineColor);
+
+            if(needed_for_target > 0)
+            {
+            string target_value_text = StringFormat("%s %.2f left", currency, needed_for_target);
+            int text_width = m_canvas.TextWidth(target_value_text);
+            m_canvas.TextOut(210 - text_width, 182, target_value_text, InpProfitLineColor);
+            }
+
+            // Profit Target Progress Bar
+            m_canvas.FillRectangle(10, 197, 210, 207, C'55,65,81'); // Background
+            int profit_bar_width = (int)(200 * profit_target_progress_pct / 100.0);
+            m_canvas.FillRectangle(10, 197, 10 + profit_bar_width, 207, InpProfitLineColor); // Filled bar
+
+
+
 
     // آپدیت نهایی بوم و بازрисов چارت
     m_canvas.Update();

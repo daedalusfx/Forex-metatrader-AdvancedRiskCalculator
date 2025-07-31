@@ -40,7 +40,7 @@ int OnInit()
       return(INIT_FAILED);
    }
    ExtDialog.Run();
-   if(!g_DisplayCanvas.Create(0, "DisplayCanvas", 0, InpDisplayPanelX, InpDisplayPanelY, 220, 190))
+   if(!g_DisplayCanvas.Create(0, "DisplayCanvas", 0, InpDisplayPanelX, InpDisplayPanelY, 220, 220))
    {
       return(INIT_FAILED);
    }
@@ -128,7 +128,7 @@ void UpdateDisplayData()
 
 
         double overall_used_pct = 0; 
-
+        double profit_target_progress_pct = 0;
     // --- بخش ۲: جمع‌آوری داده‌های مربوط به قوانین پراپ ---
     double daily_buffer = 0, daily_used_pct = 0, overall_buffer = 0, needed_for_target = 0;
     color daily_color = InpTextColor; // رنگ پیش‌فرض
@@ -177,11 +177,31 @@ void UpdateDisplayData()
         // محاسبه هدف سود
         double profit_target_level = g_initial_balance * (1 + InpProfitTargetPercent / 100.0);
         needed_for_target = profit_target_level - AccountInfoDouble(ACCOUNT_BALANCE);
+
+
+        
+         if(needed_for_target > 0)
+         {
+            double total_profit_needed_from_start = g_initial_balance * (InpProfitTargetPercent / 100.0);
+            double current_profit = AccountInfoDouble(ACCOUNT_BALANCE) - g_initial_balance;
+            if(total_profit_needed_from_start > 0)
+               profit_target_progress_pct = (current_profit / total_profit_needed_from_start) * 100.0;
+         } 
+         else 
+         {
+            profit_target_progress_pct = 100.0; // Target is reached or surpassed
+         }
+         // Ensure the value is between 0 and 100 for the progress bar
+         profit_target_progress_pct = MathMax(0, MathMin(profit_target_progress_pct, 100));
+
+
+
     }
     
          g_DisplayCanvas.Update(spread, entry_price, sl_price, tp_price, lot_size, risk_in_money,
                   daily_buffer, daily_used_pct, daily_color,
-                  overall_buffer, overall_used_pct, // <-- متغیر جدید اینجا اضافه شد
+                  overall_buffer, overall_used_pct, 
+                  profit_target_progress_pct,
                   needed_for_target);
  
 }
