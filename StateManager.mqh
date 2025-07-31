@@ -29,7 +29,8 @@ void SaveStateToFile()
     FileWriteDouble(file_handle, g_initial_balance);
     FileWriteDouble(file_handle, g_peak_equity);
     FileWriteDouble(file_handle, g_start_of_day_base);
-    FileWriteLong(file_handle, g_current_trading_day);
+    // FileWriteLong(file_handle, g_current_trading_day);
+    FileWriteLong(file_handle, (long)g_current_trading_day);
 
     // ذخیره آرایه سودهای روزانه
     int array_size = ArraySize(g_daily_profits);

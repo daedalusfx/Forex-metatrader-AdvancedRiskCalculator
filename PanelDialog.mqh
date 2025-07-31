@@ -128,7 +128,7 @@ bool CPanelDialog::Create(const long chart, const string name, const int subwin,
 bool CPanelDialog::CreateMarketPanel(int x, int y)
 {
     if(!m_panel_market.Create(m_chart_id, "MarketPanel", m_subwin, x, y, x + 220, y + 85)) return false;
-    m_panel_market.ColorBackground(InpPanelBackgroundColor);
+    m_panel_market.ColorBackground(InpSubPanelColor);
     if(!Add(m_panel_market)) return false;
     
     if(!m_lbl_title_market.Create(m_chart_id, "MarketTitle", m_subwin, x+10, y+5, x+210, y+25)) return false;
@@ -157,7 +157,7 @@ bool CPanelDialog::CreateMarketPanel(int x, int y)
 bool CPanelDialog::CreatePendingPanel(int x, int y)
 {
     if(!m_panel_pending.Create(m_chart_id, "PendingPanel", m_subwin, x, y, x + 220, y + 85)) return false;
-    m_panel_pending.ColorBackground(InpPanelBackgroundColor);
+    m_panel_pending.ColorBackground(InpSubPanelColor);
     if(!Add(m_panel_pending)) return false;
     
     if(!m_lbl_title_pending.Create(m_chart_id, "PendingTitle", m_subwin, x+10, y+5, x+210, y+25)) return false;

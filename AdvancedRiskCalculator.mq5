@@ -116,7 +116,8 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTick()
 {
-   // ExtDialog.OnTick(); // این خط حذف شد چون دیگر وجود ندارد
+   double spread = (SymbolInfoDouble(_Symbol, SYMBOL_ASK) - SymbolInfoDouble(_Symbol, SYMBOL_BID)) / _Point;
+   g_DisplayCanvas.UpdateSpread(spread);
 
    // شرط if بدون نقطه ویرگول در انتها نوشته می‌شود
    if(ExtDialog.GetCurrentState() != STATE_IDLE)
@@ -260,10 +261,8 @@ void UpdateDisplayData()
 
     }
     
-         g_DisplayCanvas.Update(spread, entry_price, sl_price, tp_price, lot_size, risk_in_money,
-                  daily_buffer, daily_used_pct, daily_color,
-                  overall_buffer, overall_used_pct, 
-                  profit_target_progress_pct,
-                  needed_for_target);
- 
+    g_DisplayCanvas.Update(entry_price, sl_price, tp_price, lot_size, risk_in_money,
+      daily_buffer, daily_used_pct, daily_color,
+      overall_buffer, overall_used_pct,
+      needed_for_target, profit_target_progress_pct);
 }

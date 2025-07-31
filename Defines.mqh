@@ -32,6 +32,7 @@ input color InpExecuteSellColor    = C'255, 107, 107';   // #ff6b6b
 input color InpOrderButtonColor    = C'255, 165, 2';     // #ffa502
 input color InpCancelButtonColor   = C'99, 110, 114';    // #636e72
 input color InpDisabledButtonColor = C'83, 92, 104';     // #535c68
+input color InpSubPanelColor = C'30, 34, 43'; // (جدید) رنگ پنل‌های داخلی
 
 // --- (کد جدید) رنگ‌های Canvas و هشدارهای پویا ---
 input color InpPanelSectionColor   = C'30, 34, 43';    // رنگ پس‌زمینه بخش اطلاعات
@@ -89,6 +90,8 @@ datetime g_current_trading_day = 0;      // برای تشخیص روز جدید
 input group "Display Panel Settings"
 input int InpDisplayPanelX = 260; // موقعیت X پنل نمایش
 input int InpDisplayPanelY = 30;  // موقعیت Y پنل نمایش
+input int InpCanvasMainFontSize = 11;     //  سایز فونت اصلی کنواس
+input int InpCanvasSmallFontSize = 10;    //  سایز فونت کوچک کنواس
 
 input group "UI Layout Settings"
 input int InpButtonWidth   = 90; // عرض دکمه‌ها
