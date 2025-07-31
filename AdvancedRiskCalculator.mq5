@@ -15,6 +15,7 @@
 #include "Defines.mqh"         // 1. اول تعاریف پایه
 #include "PanelDialog.mqh"     // 2. سپس کلاس اصلی UI
 #include "DisplayCanvas.mqh"   // 3. (جدید) کلاس پنل نمایشی
+#include "StateManager.mqh"
 
 
 //--- حالا که کلاس تعریف شده، متغیر سراسری آن را ایجاد می‌کنیم
@@ -46,17 +47,24 @@ int OnInit()
    }
    UpdateDisplayData();
 
-      // --- مقداردهی اولیه برای قوانین پراپ (NEW) ---
-      if(InpEnablePropRules)
-      {
-          g_prop_rules_active = true;
-          g_initial_balance = AccountInfoDouble(ACCOUNT_BALANCE);
-          g_peak_equity = g_initial_balance; // در ابتدا برابر با بالانس اولیه است
-          g_current_trading_day = TimeTradeServer();
-          
-          // تعیین مبنای محاسبه دراودان روزانه
-          g_start_of_day_base = (InpDailyDDBase == DD_FROM_BALANCE) ? g_initial_balance : AccountInfoDouble(ACCOUNT_EQUITY);
-      }
+         // --- مقداردهی اولیه برای قوانین پراپ (با قابلیت بازیابی) ---
+         if(InpEnablePropRules)
+         {
+            g_prop_rules_active = true;
+            // ابتدا تلاش می‌کنیم وضعیت را از فایل بخوانیم
+            if(!LoadStateFromFile())
+            {
+               // اگر فایلی وجود نداشت (اجرای اول)، مقادیر اولیه را تنظیم می‌کنیم
+               Print("No state file found. Initializing prop firm rules for the first time.");
+               g_initial_balance = AccountInfoDouble(ACCOUNT_BALANCE);
+               g_peak_equity = g_initial_balance;
+               g_current_trading_day = TimeTradeServer();
+               g_start_of_day_base = (InpDailyDDBase == DD_FROM_BALANCE) ?
+                                       AccountInfoDouble(ACCOUNT_BALANCE) : AccountInfoDouble(ACCOUNT_EQUITY);
+               // اولین بار وضعیت را ذخیره می‌کنیم
+               SaveStateToFile();
+            }
+         }
 
 
 
@@ -69,6 +77,7 @@ int OnInit()
 void OnDeinit(const int reason)
 {
    //--- حذف تمام اشیاء ایجاد شده
+   SaveStateToFile(); 
    DeleteTradeLines(); // خطوط را دستی حذف می‌کنیم
    g_DisplayCanvas.Destroy(); // (جدید) حذف پنل نمایشی
    ExtDialog.Destroy(reason);
@@ -157,13 +166,23 @@ void UpdateDisplayData()
     // --- Now, reset for the new day ---
     g_current_trading_day = TimeTradeServer();
     g_start_of_day_base = (InpDailyDDBase == DD_FROM_BALANCE) ? AccountInfoDouble(ACCOUNT_BALANCE) : AccountInfoDouble(ACCOUNT_EQUITY);
-}
+
+    SaveStateToFile();
+
+   }
 
 
-        if(InpOverallDDType == DD_TYPE_TRAILING)
-        {
-            g_peak_equity = MathMax(g_peak_equity, AccountInfoDouble(ACCOUNT_EQUITY));
-        }
+   if(InpOverallDDType == DD_TYPE_TRAILING)
+   {
+       double current_equity = AccountInfoDouble(ACCOUNT_EQUITY);
+       // آیا اکوئیتی فعلی یک رکورد جدید ثبت کرده است؟
+       if(current_equity > g_peak_equity)
+       {
+           // اگر بله، هم مقدار را آپدیت کن و هم بلافاصله وضعیت را ذخیره کن
+           g_peak_equity = current_equity;
+           SaveStateToFile();
+       }
+   }
 
         double current_equity = AccountInfoDouble(ACCOUNT_EQUITY);
 
