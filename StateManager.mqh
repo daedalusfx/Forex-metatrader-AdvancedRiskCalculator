@@ -5,7 +5,7 @@
 #ifndef STATEMANAGER_MQH
 #define STATEMANAGER_MQH
 
-#define STATE_FILE_NAME "AdvRiskCalc_State.dat"
+// #define STATE_FILE_NAME "AdvRiskCalc_State.dat"
 
 //+------------------------------------------------------------------+
 //|               ذخیره متغیرهای حیاتی در فایل باینری                |
@@ -15,7 +15,10 @@ void SaveStateToFile()
     // فقط اگر قوانین پراپ فعال باشند، ذخیره می‌کنیم
     if(!InpEnablePropRules) return;
 
-    int file_handle = FileOpen(STATE_FILE_NAME, FILE_WRITE | FILE_BIN);
+    long account_number = AccountInfoInteger(ACCOUNT_LOGIN);
+    string file_name = "AdvRiskCalc_State_" + (string)account_number + "_" + _Symbol + ".dat";
+
+    int file_handle = FileOpen(file_name, FILE_WRITE | FILE_BIN);
     if(file_handle == INVALID_HANDLE)
     {
         Print("Error opening state file for writing! Error: ", GetLastError());
@@ -48,10 +51,12 @@ bool LoadStateFromFile()
     // فقط اگر قوانین پراپ فعال باشند، بازیابی می‌کنیم
     if(!InpEnablePropRules) return false;
 
-    int file_handle = FileOpen(STATE_FILE_NAME, FILE_READ | FILE_BIN);
+    long account_number = AccountInfoInteger(ACCOUNT_LOGIN);
+    string file_name = "AdvRiskCalc_State_" + (string)account_number + "_" + _Symbol + ".dat";
+
+    int file_handle = FileOpen(file_name, FILE_READ | FILE_BIN);
     if(file_handle == INVALID_HANDLE)
     {
-        // فایل وجود ندارد، احتمالاً اولین اجرای اکسپرت است
         return false;
     }
 
@@ -70,7 +75,7 @@ bool LoadStateFromFile()
     }
     
     FileClose(file_handle);
-    Print("EA state loaded successfully from file.");
+    Print("EA state for account ", account_number, " on ", _Symbol, " loaded successfully.");
     return true;
 }
 

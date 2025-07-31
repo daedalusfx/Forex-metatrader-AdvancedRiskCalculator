@@ -207,7 +207,8 @@ void ResetToIdleState()
 void InitializeMagicNumber()
 {
     // یک کلید منحصر به فرد بر اساس سیمبل و شناسه چارت می‌سازیم
-    string gv_key = "AdvRiskCalc_Magic_" + _Symbol + "_" + (string)ChartID();
+    long account_number = AccountInfoInteger(ACCOUNT_LOGIN);
+    string gv_key = "AdvRiskCalc_Magic_" + (string)account_number + "_" + _Symbol + "_" + (string)ChartID();
 
     // آیا این متغیر سراسری قبلاً ساخته شده؟
     if(GlobalVariableCheck(gv_key))
@@ -220,7 +221,7 @@ void InitializeMagicNumber()
     {
         // اگر نه (اجرای اول روی این چارت)، یک عدد جدید می‌سازیم
         MathSrand(GetTickCount() + (int)ChartID()); // مقدار اولیه برای تولید عدد تصادفی
-        g_magic_number = MathRand() + (long)ChartID(); // تولید عدد و افزودن شناسه چارت برای اطمینان
+        g_magic_number = MathRand(); 
         
         // عدد ساخته شده را در متغیرهای سراسری ترمینال ذخیره می‌کنیم
         GlobalVariableSet(gv_key, g_magic_number);
