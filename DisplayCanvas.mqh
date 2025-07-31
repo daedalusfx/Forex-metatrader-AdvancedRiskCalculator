@@ -24,7 +24,7 @@ public:
     void              Destroy(void);
     void              Update(double spread, double entry, double sl, double tp, double lot, double risk_money,
                              double daily_buffer, double daily_used_pct, color daily_color,
-                             double overall_buffer, double needed_for_target);
+                             double overall_buffer, double needed_for_target,double overall_used_pct);
 };
 
 //--- سازنده
@@ -61,7 +61,7 @@ void CDisplayCanvas::Destroy(void)
 //--- تابع اصلی برای نقاشی تمام اطلاعات روی بوم
 void CDisplayCanvas::Update(double spread, double entry, double sl, double tp, double lot, double risk_money,
                               double daily_buffer, double daily_used_pct, color daily_color,
-                              double overall_buffer, double needed_for_target)
+                              double overall_buffer, double needed_for_target, double overall_used_pct)
 {
     // پاک کردن کامل بوم قبل از هر نقاشی جدید
     m_canvas.Erase(InpPanelSectionColor);
@@ -90,10 +90,30 @@ void CDisplayCanvas::Update(double spread, double entry, double sl, double tp, d
     m_canvas.FillRectangle(10, 133, 10 + bar_width, 143, daily_color); // بخش پر شده نوار
 
     // --- اطلاعات متنی دیگر ---
-    m_canvas.FontSet("Tahoma", 10);
-    m_canvas.TextOut(10, 153, StringFormat("Max Room: %s %.2f", currency, overall_buffer), InpTextColor);
-    string target_text = (needed_for_target > 0) ? StringFormat("Target Need: %s %.2f", currency, needed_for_target) : "TARGET REACHED!";
-    m_canvas.TextOut(10, 170, target_text, InpProfitLineColor);
+    // m_canvas.FontSet("Tahoma", 10);
+    // m_canvas.TextOut(10, 153, StringFormat("Max Room: %s %.2f", currency, overall_buffer), InpTextColor);
+    // string target_text = (needed_for_target > 0) ? StringFormat("Target Need: %s %.2f", currency, needed_for_target) : "TARGET REACHED!";
+    // m_canvas.TextOut(10, 170, target_text, InpProfitLineColor);
+
+
+            // --- اطلاعات متنی دیگر ---
+        m_canvas.FontSet("Tahoma", 10);
+
+        // Max Drawdown Room (Label + Value)
+        color overall_color = (overall_buffer < 0) ? InpDangerColor : InpTextColor;
+        m_canvas.TextOut(10, 150, "Max Room:", overall_color);
+        m_canvas.TextOut(150, 150, StringFormat("%s %.2f", currency, overall_buffer), overall_color);
+
+        // Max Drawdown Progress Bar
+        m_canvas.FillRectangle(10, 165, 210, 175, C'55,65,81'); // Background
+        int overall_bar_width = (int)(200 * overall_used_pct / 100.0);
+        if(overall_buffer < 0) overall_bar_width = 200;
+        m_canvas.FillRectangle(10, 165, 10 + overall_bar_width, 175, InpWarningColor); // Filled bar (e.g., in warning color)
+
+        // Profit Target (moved down a bit)
+        string target_text = (needed_for_target > 0) ?
+                            StringFormat("Target Need: %s %.2f", currency, needed_for_target) : "TARGET REACHED!";
+        m_canvas.TextOut(10, 185, target_text, InpProfitLineColor);
 
     // آپدیت نهایی بوم و بازрисов چارت
     m_canvas.Update();

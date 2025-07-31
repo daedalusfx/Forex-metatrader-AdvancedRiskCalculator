@@ -126,6 +126,9 @@ void UpdateDisplayData()
     if(entry_price > 0 && sl_price > 0)
         CalculateLotSize(entry_price, sl_price, lot_size, risk_in_money);
 
+
+        double overall_used_pct = 0; 
+
     // --- بخش ۲: جمع‌آوری داده‌های مربوط به قوانین پراپ ---
     double daily_buffer = 0, daily_used_pct = 0, overall_buffer = 0, needed_for_target = 0;
     color daily_color = InpTextColor; // رنگ پیش‌فرض
@@ -165,13 +168,20 @@ void UpdateDisplayData()
         double overall_dd_limit_level = overall_dd_base * (1 - InpMaxOverallDrawdownPercent / 100.0);
         overall_buffer = current_equity - overall_dd_limit_level;
 
+        double overall_dd_total_allowed = overall_dd_base - overall_dd_limit_level;
+         overall_used_pct = (overall_dd_total_allowed > 0.001) ?
+           (1.0 - overall_buffer / overall_dd_total_allowed) * 100.0 : 0;
+           if(overall_buffer < 0) overall_used_pct = 100; // Ensure bar is full if limit is breached
+    
+
         // محاسبه هدف سود
         double profit_target_level = g_initial_balance * (1 + InpProfitTargetPercent / 100.0);
         needed_for_target = profit_target_level - AccountInfoDouble(ACCOUNT_BALANCE);
     }
     
-    g_DisplayCanvas.Update(spread, entry_price, sl_price, tp_price, lot_size, risk_in_money,
-      daily_buffer, daily_used_pct, daily_color,
-      overall_buffer, needed_for_target);
+         g_DisplayCanvas.Update(spread, entry_price, sl_price, tp_price, lot_size, risk_in_money,
+                  daily_buffer, daily_used_pct, daily_color,
+                  overall_buffer, overall_used_pct, // <-- متغیر جدید اینجا اضافه شد
+                  needed_for_target);
  
 }
