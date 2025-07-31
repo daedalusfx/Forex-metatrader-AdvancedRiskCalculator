@@ -41,7 +41,7 @@ void ExecuteMarketTrade()
 
    if(!IsTradeRequestSafe(lot_size, order_type, price, sl, tp)) return;
    
-   trade.SetExpertMagicNumber(12345);
+   trade.SetExpertMagicNumber(g_magic_number);
    trade.SetMarginMode();
    trade.SetDeviationInPoints(InpSlippage);
 

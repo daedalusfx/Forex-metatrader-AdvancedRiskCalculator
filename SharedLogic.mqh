@@ -199,4 +199,35 @@ void ResetToIdleState()
     ExtDialog.ResetAllControls();
 }
 
+
+
+//+------------------------------------------------------------------+
+//|    تولید/بازیابی مجیک نامبر منحصر به فرد و پایدار برای هر چارت   |
+//+------------------------------------------------------------------+
+void InitializeMagicNumber()
+{
+    // یک کلید منحصر به فرد بر اساس سیمبل و شناسه چارت می‌سازیم
+    string gv_key = "AdvRiskCalc_Magic_" + _Symbol + "_" + (string)ChartID();
+
+    // آیا این متغیر سراسری قبلاً ساخته شده؟
+    if(GlobalVariableCheck(gv_key))
+    {
+        // اگر بله، آن را می‌خوانیم
+        g_magic_number = (long)GlobalVariableGet(gv_key);
+        Print("Magic number for ", _Symbol, " loaded: ", g_magic_number);
+    }
+    else
+    {
+        // اگر نه (اجرای اول روی این چارت)، یک عدد جدید می‌سازیم
+        MathSrand(GetTickCount() + (int)ChartID()); // مقدار اولیه برای تولید عدد تصادفی
+        g_magic_number = MathRand() + (long)ChartID(); // تولید عدد و افزودن شناسه چارت برای اطمینان
+        
+        // عدد ساخته شده را در متغیرهای سراسری ترمینال ذخیره می‌کنیم
+        GlobalVariableSet(gv_key, g_magic_number);
+        Print("New magic number for ", _Symbol, " generated and saved: ", g_magic_number);
+    }
+}
+
+
+
 #endif // SHAREDLOGIC_MQH

@@ -69,7 +69,7 @@ void ExecutePendingTrade()
    request.tp       = NormalizeDouble(tp, _Digits);
    request.type     = order_type;
    request.type_time = ORDER_TIME_GTC;
-   request.magic    = 12345;
+   request.magic = g_magic_number;
    request.comment  = "Trade by AdvRiskCalc v2.1";
    
    if(OrderSend(request, result))

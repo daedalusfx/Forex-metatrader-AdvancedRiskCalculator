@@ -58,6 +58,7 @@ CTrade          trade;
 double          g_sl_price = 0; // برای حالت حرکت ثابت خطوط استفاده می‌شود
 double          g_entry_price = 0;
 double          g_tp_price = 0;
+long g_magic_number = 0;
 
 
 // --- Prop Firm Rules (NEW) ---

@@ -35,7 +35,7 @@ CDisplayCanvas g_DisplayCanvas;
 //+------------------------------------------------------------------+
 int OnInit()
 {
-   //--- ایجاد و اجرای پنل اصلی
+   // --- 1. راه‌اندازی UI ---
    if(!ExtDialog.Create(0, "Advanced Risk Calculator v2.1", 0, 10, 30))
    {
       return(INIT_FAILED);
@@ -45,29 +45,56 @@ int OnInit()
    {
       return(INIT_FAILED);
    }
-   UpdateDisplayData();
 
-         // --- مقداردهی اولیه برای قوانین پراپ (با قابلیت بازیابی) ---
-         if(InpEnablePropRules)
+   // --- 2. مقداردهی اولیه متغیرهای اصلی ---
+   InitializeMagicNumber(); // تضمین می‌کند که g_magic_number مقداردهی شده (خوانده شده یا جدید)
+
+   if(InpEnablePropRules)
+   {
+      g_prop_rules_active = true;
+      bool stateFileExists = LoadStateFromFile();
+
+      // اگر فایل وضعیتی وجود نداشت، این اولین اجرای واقعی است
+      if(!stateFileExists)
+      {
+         Print("No state file found. Initializing prop firm rules for the first time.");
+         g_initial_balance = AccountInfoDouble(ACCOUNT_BALANCE);
+         g_peak_equity = g_initial_balance;
+         g_current_trading_day = TimeTradeServer();
+         g_start_of_day_base = (InpDailyDDBase == DD_FROM_BALANCE) ? AccountInfoDouble(ACCOUNT_BALANCE) : AccountInfoDouble(ACCOUNT_EQUITY);
+         ArrayFree(g_daily_profits); // اطمینان از خالی بودن آرایه
+         SaveStateToFile();          // ذخیره وضعیت کاملاً جدید
+      }
+      // اگر فایل وضعیت وجود داشت، باید چک کنیم که آیا روز جدیدی شروع شده یا نه
+      else
+      {
+         datetime server_time = TimeTradeServer();
+         long current_day_index = (long)(server_time / 86400);
+         long last_day_index = (long)(g_current_trading_day / 86400);
+
+         if(current_day_index > last_day_index)
          {
-            g_prop_rules_active = true;
-            // ابتدا تلاش می‌کنیم وضعیت را از فایل بخوانیم
-            if(!LoadStateFromFile())
-            {
-               // اگر فایلی وجود نداشت (اجرای اول)، مقادیر اولیه را تنظیم می‌کنیم
-               Print("No state file found. Initializing prop firm rules for the first time.");
-               g_initial_balance = AccountInfoDouble(ACCOUNT_BALANCE);
-               g_peak_equity = g_initial_balance;
-               g_current_trading_day = TimeTradeServer();
-               g_start_of_day_base = (InpDailyDDBase == DD_FROM_BALANCE) ?
-                                       AccountInfoDouble(ACCOUNT_BALANCE) : AccountInfoDouble(ACCOUNT_EQUITY);
-               // اولین بار وضعیت را ذخیره می‌کنیم
-               SaveStateToFile();
-            }
+            Print("New trading day detected upon initialization.");
+            // منطق شروع روز جدید را اینجا هم اجرا می‌کنیم
+            double end_of_day_base = (InpDailyDDBase == DD_FROM_BALANCE) ? AccountInfoDouble(ACCOUNT_BALANCE) : AccountInfoDouble(ACCOUNT_EQUITY);
+            double previous_day_profit = end_of_day_base - g_start_of_day_base;
+            
+            int new_size = ArraySize(g_daily_profits) + 1;
+            ArrayResize(g_daily_profits, new_size);
+            g_daily_profits[new_size - 1].date = g_current_trading_day;
+            g_daily_profits[new_size - 1].profit = previous_day_profit;
+
+            g_current_trading_day = server_time;
+            g_start_of_day_base = end_of_day_base;
+            
+            SaveStateToFile();
          }
+      }
+   }
 
-
-
+   // --- 3. به‌روزرسانی نهایی نمایشگر ---
+   UpdateDisplayData();
+   ChartRedraw();
    return(INIT_SUCCEEDED);
 }
 
