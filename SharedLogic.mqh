@@ -13,11 +13,23 @@ bool CalculateLotSize(double entry, double sl, double &lot_size, double &risk_in
     risk_in_money = 0;
     string risk_input_str = (ExtDialog.GetCurrentState() == STATE_PREP_MARKET_BUY || ExtDialog.GetCurrentState() == STATE_PREP_MARKET_SELL) ? 
                             ExtDialog.GetRiskInput("market") : ExtDialog.GetRiskInput("pending");
-    double risk_pct = StringToDouble(risk_input_str);
-    if(risk_pct <= 0) return false;
 
-    risk_in_money = AccountInfoDouble(ACCOUNT_BALANCE) * (risk_pct / 100.0);
-    if(risk_in_money <= 0) return false;
+                            double risk_value = StringToDouble(risk_input_str);
+            if(risk_value <= 0) return false;
+
+            // --- (منطق جدید) بررسی حالت محاسبه ریسک ---
+            if(InpRiskMode == RISK_PERCENT)
+            {
+                // اگر حالت درصد انتخاب شده، ریسک را بر اساس بالانس حساب محاسبه کن
+                risk_in_money = AccountInfoDouble(ACCOUNT_BALANCE) * (risk_value / 100.0);
+            }
+            else // InpRiskMode == RISK_MONEY
+            {
+                // اگر حالت پول انتخاب شده، مقدار وارد شده خود ریسک نقدی است
+                risk_in_money = risk_value;
+            }
+
+                if(risk_in_money <= 0) return false;
 
     ENUM_ORDER_TYPE order_type = (sl < entry) ? ORDER_TYPE_BUY : ORDER_TYPE_SELL;
     double loss_for_one_lot = 0;

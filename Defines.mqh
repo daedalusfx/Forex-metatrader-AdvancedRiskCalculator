@@ -8,12 +8,15 @@
 //--- Enums
 enum ETakeProfitMode { TP_MANUAL, TP_RR_RATIO };
 enum ETradeState { STATE_IDLE, STATE_PREP_MARKET_BUY, STATE_PREP_MARKET_SELL, STATE_PREP_PENDING_BUY, STATE_PREP_PENDING_SELL };
+enum ENUM_Risk_Mode { RISK_PERCENT, RISK_MONEY };
 
 //--- Input Settings (User-Customizable)
 input group "Risk & Safety Settings"
 input double InpRiskPercent = 1.0;          // Risk % of Account Balance
 input ulong  InpSlippage    = 10;           // Max slippage for market orders (in points)
 input double InpMaxMarginUsagePercent = 90.0; // Max % of Free Margin to use for a trade
+input ENUM_Risk_Mode InpRiskMode = RISK_PERCENT; // مبنای محاسبه ریسک: درصد یا پول
+
 
 input group "Take Profit Settings"
 input ETakeProfitMode InpTPMode = TP_RR_RATIO;    // Take Profit Mode
