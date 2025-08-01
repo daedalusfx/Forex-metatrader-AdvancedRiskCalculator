@@ -26,17 +26,22 @@ input group "Pending Order Settings"
 input bool InpAutoEntryPending = false; // Enable rigid SL/Entry/TP movement
 
 input group "Panel & Button Colors"
-input color InpPanelBackgroundColor= C'40, 45, 60';      // #282d3c
-input color InpTextColor           = C'238, 238, 238';   // #eeeeee
-input color InpBuyButtonColor      = C'34, 166, 179';    // #22a6b3
-input color InpSellButtonColor     = C'235, 77, 75';     // #eb4d4b
-input color InpExecuteBuyColor     = C'32, 201, 151';    // #20c997
-input color InpExecuteSellColor    = C'255, 107, 107';   // #ff6b6b
-input color InpOrderButtonColor    = C'255, 165, 2';     // #ffa502
-input color InpCancelButtonColor   = C'99, 110, 114';    // #636e72
-input color InpDisabledButtonColor = C'83, 92, 104';     // #535c68
 input color InpSubPanelColor = C'30, 34, 43'; // (جدید) رنگ پنل‌های داخلی
-
+input color InpPanelBackgroundColor= C'245, 245, 245';   // پس‌زمینه اصلی پنل (سفید دودی)
+input color InpTextColor           = C'30, 30, 30';      // رنگ متن اصلی (خاکستری تیره/مشکی)
+input color InpTextSecondaryColor  = C'100, 100, 100';   // رنگ متن ثانویه (خاکستری)
+//--- رنگ‌های فیلد ورودی
+input color InpInputBgColor        = C'255, 255, 255';   // پس‌زمینه فیلد ورودی (سفید)
+input color InpInputBorderColor    = C'211, 211, 211';   // رنگ حاشیه (خاکستری روشن)
+//--- رنگ‌های دکمه‌ها
+input color InpBuyButtonColor      = C'30, 144, 255';    // رنگ دکمه خرید (آبی)
+input color InpSellButtonColor     = C'255, 69, 0';      // رنگ دکمه فروش (قرمز-نارنجی)
+input color InpExecuteBuyColor     = C'0, 191, 255';     // رنگ اجرای خرید (آبی روشن)
+input color InpExecuteSellColor    = C'255, 0, 0';       // رنگ اجرای فروش (قرمز)
+input color InpOrderButtonColor    = C'30, 144, 255';    // رنگ دکمه ثبت سفارش
+input color InpCancelButtonColor   = C'255, 165, 0';     // رنگ دکمه لغو (نارنجی)
+input color InpDisabledButtonColor = C'220, 220, 220';   // رنگ دکمه غیرفعال (خاکستری خیلی روشن)
+input color CanvasInpTextColor           = C'238, 238, 238';   // #eeeeee
 // --- (کد جدید) رنگ‌های Canvas و هشدارهای پویا ---
 input color InpPanelSectionColor   = C'30, 34, 43';    // رنگ پس‌زمینه بخش اطلاعات
 input color InpSafeColor           = C'52, 211, 153';   // رنگ حالت امن (سبز)
@@ -100,6 +105,7 @@ input group "UI Layout Settings"
 input int InpButtonWidth   = 90; // عرض دکمه‌ها
 input int InpButtonHeight  = 25; // ارتفاع دکمه‌ها
 input int InpButtonPadding = 8;  // فاصله بین دکمه‌ها
+input int InpButtonGap     = 5;  // فاصله (گپ) بین دکمه‌ها
 
 
 
