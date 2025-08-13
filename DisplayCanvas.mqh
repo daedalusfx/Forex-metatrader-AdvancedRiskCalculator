@@ -1,6 +1,6 @@
 //+------------------------------------------------------------------+
 //|                                             DisplayCanvas.mqh |
-//|        (نسخه نهایی و اصلاح شده) کلاس مدیریت پنل نمایشی        |
+//|          (نسخه نهایی) پیاده‌سازی طرح شماره ۱: فشرده و مدرن        |
 //+------------------------------------------------------------------+
 #ifndef DISPLAYCANVAS_MQH
 #define DISPLAYCANVAS_MQH
@@ -21,34 +21,19 @@ public:
 
     bool              Create(long chart_id, string name, int subwin, int x, int y, int width, int height);
     void              Destroy(void);
-    // (اصلاح شده) تابع اصلی آپدیت با تمام پارامترها
     void              Update(double entry, double sl, double tp, double lot, double risk_money,
                              double daily_buffer, double daily_used_pct, color daily_color,
-                             double overall_buffer, double overall_used_pct,
-                             double needed_for_target, double profit_target_progress_pct);
-    // (اصلاح شده) تابع جدید برای آپدیت اسپرد به صورت جداگانه
-    void              UpdateSpread(double spread);
+                             double overall_buffer,
+                             double overall_used_pct,
+                             double needed_for_target, double profit_target_progress_pct,
+                             double spread);
 };
 
 //--- سازنده
-CDisplayCanvas::CDisplayCanvas(void) : m_chart_id(0), m_subwin(0)
-{
-}
+CDisplayCanvas::CDisplayCanvas(void) : m_chart_id(0), m_subwin(0) {}
 
 //--- مخرب
-CDisplayCanvas::~CDisplayCanvas(void)
-{
-}
-
-//--- (جدید) تابع اختصاصی برای آپدیت اسپرد
-void CDisplayCanvas::UpdateSpread(double spread)
-{
-    // فقط بخش مربوط به اسپرد را پاک کرده و دوباره می‌نویسیم
-    m_canvas.FillRectangle(5, 5, 115, 20, InpSubPanelColor); // از رنگ جدید پنل داخلی استفاده می‌کنیم
-    m_canvas.FontSet("Tahoma", InpCanvasMainFontSize, FW_BOLD);
-    m_canvas.TextOut(10, 5, "Spread: " + DoubleToString(spread, 1), InpTextColor);
-    m_canvas.Update();
-}
+CDisplayCanvas::~CDisplayCanvas(void) {}
 
 //--- ایجاد بوم نقاشی
 bool CDisplayCanvas::Create(long chart_id, string name, int subwin, int x, int y, int width, int height)
@@ -70,67 +55,95 @@ void CDisplayCanvas::Destroy(void)
     m_canvas.Destroy();
 }
 
-//--- (اصلاح شده) تابع اصلی برای نقاشی تمام اطلاعات روی بوم
+//--- (پیاده‌سازی طرح جدید) تابع اصلی برای نقاشی تمام اطلاعات روی بوم
 void CDisplayCanvas::Update(double entry, double sl, double tp, double lot, double risk_money,
                               double daily_buffer, double daily_used_pct, color daily_color,
                               double overall_buffer, double overall_used_pct,
-                              double needed_for_target, double profit_target_progress_pct)
+                              double needed_for_target, double profit_target_progress_pct,
+                              double spread)
 {
-    // پاک کردن کامل بوم قبل از هر نقاشی جدید
-    m_canvas.Erase(InpPanelSectionColor);
-
     string currency = AccountInfoString(ACCOUNT_CURRENCY);
-    // --- بخش اطلاعات عمومی ---
-    m_canvas.FontSet("Tahoma", InpCanvasMainFontSize, FW_BOLD);
-    m_canvas.TextOut(120, 5, "Lot: " + DoubleToString(lot, 2), InpTextColor);
-    m_canvas.TextOut(10, 25, "Entry: " + (entry > 0 ? DoubleToString(entry, _Digits) : "-"), InpTextColor);
-    m_canvas.TextOut(120, 25, "SL: " + (sl > 0 ? DoubleToString(sl, _Digits) : "-"), InpTextColor);
-    m_canvas.TextOut(10, 45, "TP: " + (tp > 0 ? DoubleToString(tp, _Digits) : "-"), InpTextColor);
-    m_canvas.TextOut(10, 65, StringFormat("Risk: %s %.2f", currency, risk_money), InpTextColor);
+    int panel_width = m_canvas.Width();
+    int panel_height = m_canvas.Height();
+    int padding = 10;
+    int font_size = 8;
+    int current_y = padding;
 
-    // افزودن خط جداکننده
-    m_canvas.FillRectangle(10, 85, 210, 86, C'99,110,114');
-
-    // --- بخش پراپ فرم ---
-    m_canvas.FontSet("Tahoma", 12, FW_BOLD); // سایز عنوان بخش
-    m_canvas.TextOut(10, 95, "Prop Firm Compliance", InpOrderButtonColor);
-
-    // --- نوار پیشرفت برای Daily Drawdown ---
+    // پاک کردن کامل بوم با رنگ پس‌زمینه اصلی
+    m_canvas.Erase(InpModernUIPanelBg);
     m_canvas.FontSet("Tahoma", InpCanvasSmallFontSize);
-    m_canvas.TextOut(10, 118, "Daily Room:", daily_color);
-    m_canvas.TextOut(150, 118, StringFormat("%s %.2f", currency, daily_buffer), daily_color);
-    m_canvas.FillRectangle(10, 133, 210, 143, C'55,65,81'); // پس زمینه نوار
-    int daily_bar_width = (int)(200 * daily_used_pct / 100.0);
-    if(daily_buffer < 0) daily_bar_width = 200;
-    m_canvas.FillRectangle(10, 133, 10 + daily_bar_width, 143, daily_color); // بخش پر شده نوار
 
-    // --- نوار پیشرفت برای Max Drawdown ---
-    m_canvas.FontSet("Tahoma", InpCanvasSmallFontSize);
-    color overall_color = (overall_buffer < 0) ? InpDangerColor : InpTextColor;
-    m_canvas.TextOut(10, 150, "Max Room:", overall_color);
-    m_canvas.TextOut(150, 150, StringFormat("%s %.2f", currency, overall_buffer), overall_color);
-    m_canvas.FillRectangle(10, 165, 210, 175, C'55,65,81'); // پس زمینه نوار
-    int overall_bar_width = (int)(200 * overall_used_pct / 100.0);
-    if(overall_buffer < 0) overall_bar_width = 200;
-    m_canvas.FillRectangle(10, 165, 10 + overall_bar_width, 175, InpWarningColor); // بخش پر شده نوار
+    // --- بخش ۱: هدر پنل ---
+    m_canvas.FontSet("Tahoma", InpCanvasSmallFontSize + 1, FW_BOLD);
+    m_canvas.TextOut(padding, current_y, "Trade Setup", InpModernUITitle);
 
-    // --- نوار پیشرفت برای Profit Target ---
-    m_canvas.FontSet("Tahoma", InpCanvasSmallFontSize);
-    string target_label_text = (needed_for_target > 0) ? "Profit Target:" : "TARGET REACHED!";
-    m_canvas.TextOut(10, 182, target_label_text, InpProfitLineColor);
-    if(needed_for_target > 0)
-    {
-       string target_value_text = StringFormat("%s %.2f left", currency, needed_for_target);
-       int text_width = m_canvas.TextWidth(target_value_text);
-       m_canvas.TextOut(210 - text_width, 182, target_value_text, InpProfitLineColor);
-    }
-    m_canvas.FillRectangle(10, 197, 210, 207, C'55,65,81'); // پس زمینه نوار
-    int profit_bar_width = (int)(200 * profit_target_progress_pct / 100.0);
-    m_canvas.FillRectangle(10, 197, 10 + profit_bar_width, 207, InpProfitLineColor); // بخش پر شده نوار
+    m_canvas.FontSet("Tahoma", InpCanvasMainFontSize);
+    string lot_text = "Lot: " + DoubleToString(lot, 2);
+    m_canvas.TextOut(panel_width - padding - (int)m_canvas.TextWidth(lot_text), current_y - 2, lot_text, InpModernUITextSecondary);
+    string spread_text = "Spread: " + DoubleToString(spread, 1);
+    m_canvas.TextOut(panel_width - padding - (int)m_canvas.TextWidth(spread_text), current_y + 10, spread_text, InpModernUITextSecondary);
+    
+    current_y += 28;
+    m_canvas.FillRectangle(padding, current_y, panel_width - padding, current_y + 1, InpModernUIBorder);
+    current_y += 12;
 
-    // آپدیت نهایی بوم و بازрисов چارت
+    // --- بخش ۲: اطلاعات معامله (دو ستونی) ---
+    int col1_x = padding;
+    int col2_x = panel_width / 2 + padding/2;
+
+    // محاسبه مقادیر مورد نیاز
+    double rr_ratio = (risk_money > 0 && tp > 0 && sl > 0 && MathAbs(sl - entry) > 0) ? MathAbs(tp - entry) / MathAbs(sl - entry) : 0.0;
+    double reward_money = risk_money * rr_ratio;
+    
+    // ستون اول
+    m_canvas.TextOut(col1_x, current_y, "Entry:", InpModernUITextSecondary);
+    m_canvas.TextOut(col1_x, current_y + 15, "Stop Loss:", InpModernUITextSecondary);
+    m_canvas.TextOut(col1_x, current_y + 30, "Take Profit:", InpModernUITextSecondary);
+
+    string entry_val = (entry > 0) ? DoubleToString(entry, _Digits) : "-";
+    m_canvas.TextOut(col2_x - (int)m_canvas.TextWidth(entry_val), current_y, entry_val, InpModernUITextPrimary);
+    string sl_val = (sl > 0) ? DoubleToString(sl, _Digits) : "-";
+    m_canvas.TextOut(col2_x - (int)m_canvas.TextWidth(sl_val), current_y + 15, sl_val, InpModernUITextPrimary);
+    string tp_val = (tp > 0) ? DoubleToString(tp, _Digits) : "-";
+    m_canvas.TextOut(col2_x - (int)m_canvas.TextWidth(tp_val), current_y + 30, tp_val, InpModernUITextPrimary);
+    
+    // ستون دوم
+    m_canvas.TextOut(col2_x + 5, current_y, "Risk:", InpModernUITextSecondary);
+    m_canvas.TextOut(col2_x + 5, current_y + 15, "Reward:", InpModernUITextSecondary);
+    m_canvas.TextOut(col2_x + 5, current_y + 30, "R:R:", InpModernUITextSecondary);
+    
+    string risk_val = StringFormat("%s%.2f", currency, risk_money);
+    m_canvas.TextOut(panel_width - padding - (int)m_canvas.TextWidth(risk_val), current_y, risk_val, InpDangerColor);
+    string reward_val = StringFormat("%s%.2f", currency, reward_money);
+    m_canvas.TextOut(panel_width - padding - (int)m_canvas.TextWidth(reward_val), current_y + 15, reward_val, InpProfitLineColor);
+    string rr_val = DoubleToString(rr_ratio, 1);
+    m_canvas.TextOut(panel_width - padding - (int)m_canvas.TextWidth(rr_val), current_y + 30, rr_val, InpModernUITextPrimary);
+    
+    // --- بخش ۳: قوانین پراپ فرم (در پایین پنل) ---
+    current_y = panel_height - 65;
+    int bar_height = 4;
+
+    // افت روزانه
+    m_canvas.TextOut(padding, current_y, "Daily Room", InpModernUITextSecondary);
+    string daily_val = StringFormat("%s %.0f", currency, daily_buffer);
+
+    m_canvas.TextOut(panel_width - padding - (int)m_canvas.TextWidth(daily_val), current_y, daily_val, daily_color);
+    current_y += 15;
+    m_canvas.FillRectangle(padding, current_y, panel_width - padding, current_y + bar_height, InpModernUIProgressBg);
+    m_canvas.FillRectangle(padding, current_y, padding + (int)((panel_width - 2*padding) * daily_used_pct / 100.0), current_y + bar_height, daily_color);
+    current_y += 18;
+
+    // افت کلی
+    color overall_color = (overall_buffer < 0) ? InpDangerColor : InpWarningColor;
+    m_canvas.TextOut(padding, current_y, "Max Room", InpModernUITextSecondary);
+    string overall_val = StringFormat("%s %.0f", currency, overall_buffer);
+    m_canvas.TextOut(panel_width - padding - (int)m_canvas.TextWidth(overall_val), current_y, overall_val, overall_color);
+    current_y += 15;
+    m_canvas.FillRectangle(padding, current_y, panel_width - padding, current_y + bar_height, InpModernUIProgressBg);
+    m_canvas.FillRectangle(padding, current_y, padding + (int)((panel_width - 2*padding) * overall_used_pct / 100.0), current_y + bar_height, overall_color);
+    
+    // آپدیت نهایی بوم
     m_canvas.Update();
-    ChartRedraw(m_chart_id);
+    ChartRedraw();
 }
-
 #endif // DISPLAYCANVAS_MQH
