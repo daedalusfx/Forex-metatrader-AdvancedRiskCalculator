@@ -98,8 +98,21 @@ datetime g_current_trading_day = 0;      // برای تشخیص روز جدید
 input group "Display Panel Settings"
 input int InpDisplayPanelX = 260; // موقعیت X پنل نمایش
 input int InpDisplayPanelY = 30;  // موقعیت Y پنل نمایش
-input int InpCanvasMainFontSize = 11;     //  سایز فونت اصلی کنواس
-input int InpCanvasSmallFontSize = 10;    //  سایز فونت کوچک کنواس
+input int InpCanvasMainFontSize = 14;     //  سایز فونت اصلی کنواس
+input int InpCanvasSmallFontSize = 12;    //  سایز فونت کوچک کنواس
+input int InpDisplayPanelW = 220;  //  عرض پنل نمایشی
+input int InpDisplayPanelH = 220;  //  ارتفاع پنل نمایشی
+
+
+input group "Modern UI (Dark) Style Settings"
+// --- رنگ‌های طرح جدید (مدرن و تیره) ---
+input color InpModernUIPanelBg      = C'31, 41, 55';    // پس‌زمینه اصلی پنل (سرمه‌ای تیره)
+input color InpModernUITextPrimary  = C'229, 231, 235'; // رنگ متن اصلی (خاکستری روشن)
+input color InpModernUITextSecondary= C'156, 163, 175'; // رنگ متن ثانویه (خاکستری)
+input color InpModernUITitle        = C'34, 211, 238';  // رنگ عنوان (فیروزه‌ای)
+input color InpModernUIBorder       = C'75, 85, 99';    // رنگ جداکننده
+input color InpModernUIProgressBg   = C'55, 65, 81';    // پس‌زمینه خالی نوارهای پیشرفت
+
 
 input group "UI Layout Settings"
 input int InpButtonWidth   = 90; // عرض دکمه‌ها
