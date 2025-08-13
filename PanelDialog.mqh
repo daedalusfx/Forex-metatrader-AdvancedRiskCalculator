@@ -111,7 +111,7 @@ bool CPanelDialog::Create(const long chart, const string name, const int subwin,
     return(true);
 }
 
-// این کد را در PanelDialog.mqh جایگزین کنید
+//--- (بازنویسی شده) ایجاد پنل Market با لیبل ریسک پویا
 bool CPanelDialog::CreateMarketPanel(int x, int y)
 {
     if(!m_panel_market.Create(m_chart_id, "MarketPanel", m_subwin, x, y, x + 220, y + 85)) return false;
@@ -122,39 +122,35 @@ bool CPanelDialog::CreateMarketPanel(int x, int y)
     m_lbl_title_market.Text("Market Execution");
     if(!Add(m_lbl_title_market)) return false;
 
-    // --- (کد جدید و پویا برای چیدمان) ---
-    int current_x = x + 10; // نقطه شروع X با پدینگ
-    int y_pos_buttons = y + 30; // نقطه شروع Y برای دکمه ها
 
-    // --- دکمه اول: Market Buy ---
-    if(!m_btn_prep_market_buy.Create(m_chart_id, "PrepMarketBuy", m_subwin, current_x, y_pos_buttons, current_x + InpButtonWidth, y_pos_buttons + InpButtonHeight)) return false;
+    int current_x = x + 10;
+    int y_pos = y + 30;
+
+
+    // ردیف دکمه‌ها
+    if(!m_btn_prep_market_buy.Create(m_chart_id, "PrepMarketBuy", m_subwin, x+10, y+30, x+70, y+55)) return false;
     if(!Add(m_btn_prep_market_buy)) return false;
-    current_x += InpButtonWidth + InpButtonGap; // به روز رسانی X برای دکمه بعدی
-
-    // --- دکمه دوم: Market Sell ---
-    if(!m_btn_prep_market_sell.Create(m_chart_id, "PrepMarketSell", m_subwin, current_x, y_pos_buttons, current_x + InpButtonWidth, y_pos_buttons + InpButtonHeight)) return false;
+    if(!m_btn_prep_market_sell.Create(m_chart_id, "PrepMarketSell", m_subwin, x+75, y+30, x+135, y+55)) return false;
     if(!Add(m_btn_prep_market_sell)) return false;
-    current_x += InpButtonWidth + InpButtonGap; // به روز رسانی X
-
-    // --- دکمه سوم: Execute ---
-    if(!m_btn_execute_market.Create(m_chart_id, "ExecuteMarket", m_subwin, current_x, y_pos_buttons, current_x + InpButtonWidth, y_pos_buttons + InpButtonHeight)) return false;
+    if(!m_btn_execute_market.Create(m_chart_id, "ExecuteMarket", m_subwin, x+140, y+30, x+210, y+55)) return false;
     if(!Add(m_btn_execute_market)) return false;
     
-    // --- بخش ریسک ---
-    int y_pos_risk = y_pos_buttons + InpButtonHeight + 10;
-    if(!m_lbl_risk_market.Create(m_chart_id, "RiskMarketLbl", m_subwin, x+10, y_pos_risk, x+70, y_pos_risk+20)) return false;
+    y_pos += InpButtonHeight + 10;
+    if(!m_lbl_risk_market.Create(m_chart_id, "RiskMarketLbl", m_subwin, x+10, y_pos, x+60, y_pos+20)) return false;
     
+    // --- (کد جدید) تنظیم متن لیبل بر اساس حالت انتخابی ---
     string risk_label_text = (InpRiskMode == RISK_PERCENT) ? "Risk %:" : "Risk " + AccountInfoString(ACCOUNT_CURRENCY) + ":";
     m_lbl_risk_market.Text(risk_label_text);
+    // --- (پایان کد جدید) ---
+
     if(!Add(m_lbl_risk_market)) return false;
-    
-    if(!m_edit_risk_market.Create(m_chart_id, "RiskMarketEdit", m_subwin, x+80, y_pos_risk-2, x+210, y_pos_risk+23)) return false;
+    if(!m_edit_risk_market.Create(m_chart_id, "RiskMarketEdit", m_subwin, x+70, y_pos-2, x+130, y_pos+23)) return false;
     if(!Add(m_edit_risk_market)) return false;
     
     return true;
 }
 
-// این کد را نیز در PanelDialog.mqh جایگزین کنید
+//--- (بازنویسی شده) ایجاد پنل Pending با لیبل ریسک پویا
 bool CPanelDialog::CreatePendingPanel(int x, int y)
 {
     if(!m_panel_pending.Create(m_chart_id, "PendingPanel", m_subwin, x, y, x + 220, y + 85)) return false;
@@ -164,34 +160,27 @@ bool CPanelDialog::CreatePendingPanel(int x, int y)
     if(!m_lbl_title_pending.Create(m_chart_id, "PendingTitle", m_subwin, x+10, y+5, x+210, y+25)) return false;
     m_lbl_title_pending.Text("Pending Order");
     if(!Add(m_lbl_title_pending)) return false;
+    int current_x = x + 10;
+    int y_pos = y + 30;
 
-    // --- (کد جدید و پویا برای چیدمان) ---
-    int current_x = x + 10; // نقطه شروع X با پدینگ
-    int y_pos_buttons = y + 30; // نقطه شروع Y برای دکمه ها
-
-    // --- دکمه اول: Pending Buy ---
-    if(!m_btn_prep_pending_buy.Create(m_chart_id, "PrepPendingBuy", m_subwin, current_x, y_pos_buttons, current_x + InpButtonWidth, y_pos_buttons + InpButtonHeight)) return false;
+    // ردیف دکمه‌ها
+    if(!m_btn_prep_pending_buy.Create(m_chart_id, "PrepPendingBuy", m_subwin, x+10, y+30, x+70, y+55)) return false;
     if(!Add(m_btn_prep_pending_buy)) return false;
-    current_x += InpButtonWidth + InpButtonGap; // به روز رسانی X
-
-    // --- دکمه دوم: Pending Sell ---
-    if(!m_btn_prep_pending_sell.Create(m_chart_id, "PrepPendingSell", m_subwin, current_x, y_pos_buttons, current_x + InpButtonWidth, y_pos_buttons + InpButtonHeight)) return false;
+    if(!m_btn_prep_pending_sell.Create(m_chart_id, "PrepPendingSell", m_subwin, x+75, y+30, x+135, y+55)) return false;
     if(!Add(m_btn_prep_pending_sell)) return false;
-    current_x += InpButtonWidth + InpButtonGap; // به روز رسانی X
-
-    // --- دکمه سوم: Place ---
-    if(!m_btn_execute_pending.Create(m_chart_id, "ExecutePending", m_subwin, current_x, y_pos_buttons, current_x + InpButtonWidth, y_pos_buttons + InpButtonHeight)) return false;
+    if(!m_btn_execute_pending.Create(m_chart_id, "ExecutePending", m_subwin, x+140, y+30, x+210, y+55)) return false;
     if(!Add(m_btn_execute_pending)) return false;
 
-    // --- بخش ریسک ---
-    int y_pos_risk = y_pos_buttons + InpButtonHeight + 10;
-    if(!m_lbl_risk_pending.Create(m_chart_id, "RiskPendingLbl", m_subwin, x+10, y_pos_risk, x+70, y_pos_risk+20)) return false;
+    y_pos += InpButtonHeight + 10;
+    if(!m_lbl_risk_pending.Create(m_chart_id, "RiskPendingLbl", m_subwin, x+10, y_pos, x+60, y_pos+20)) return false;
     
+    // --- (کد جدید) تنظیم متن لیبل بر اساس حالت انتخابی ---
     string risk_label_text = (InpRiskMode == RISK_PERCENT) ? "Risk %:" : "Risk " + AccountInfoString(ACCOUNT_CURRENCY) + ":";
     m_lbl_risk_pending.Text(risk_label_text);
-    if(!Add(m_lbl_risk_pending)) return false;
+    // --- (پایان کد جدید) ---
 
-    if(!m_edit_risk_pending.Create(m_chart_id, "RiskPendingEdit", m_subwin, x+80, y_pos_risk-2, x+210, y_pos_risk+23)) return false;
+    if(!Add(m_lbl_risk_pending)) return false;
+    if(!m_edit_risk_pending.Create(m_chart_id, "RiskPendingEdit", m_subwin, x+70, y_pos-2, x+130, y_pos+23)) return false;
     if(!Add(m_edit_risk_pending)) return false;
 
     return true;
