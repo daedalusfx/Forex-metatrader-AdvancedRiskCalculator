@@ -44,7 +44,8 @@ int OnInit()
       return(INIT_FAILED);
    }
    ExtDialog.Run();
-   if(!g_DisplayCanvas.Create(0, "DisplayCanvas", 0, InpDisplayPanelX, InpDisplayPanelY, 220, 220))
+   if(!g_DisplayCanvas.Create(0, "DisplayCanvas", 0, InpDisplayPanelX, InpDisplayPanelY, InpDisplayPanelW, InpDisplayPanelH))
+
    {
       return(INIT_FAILED);
    }
@@ -123,7 +124,6 @@ void OnDeinit(const int reason)
 void OnTick()
 {
    double spread = (SymbolInfoDouble(_Symbol, SYMBOL_ASK) - SymbolInfoDouble(_Symbol, SYMBOL_BID)) / _Point;
-   g_DisplayCanvas.UpdateSpread(spread);
 
    g_SpreadAtrPanel.Update(); 
    // شرط if بدون نقطه ویرگول در انتها نوشته می‌شود
@@ -271,5 +271,6 @@ void UpdateDisplayData()
     g_DisplayCanvas.Update(entry_price, sl_price, tp_price, lot_size, risk_in_money,
       daily_buffer, daily_used_pct, daily_color,
       overall_buffer, overall_used_pct,
-      needed_for_target, profit_target_progress_pct);
+      needed_for_target, profit_target_progress_pct,
+      spread); 
 }
