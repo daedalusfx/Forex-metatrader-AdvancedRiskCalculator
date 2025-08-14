@@ -1,41 +1,49 @@
 //+------------------------------------------------------------------+
-//|                                           Test_Functions.mq5 |
-//|          تستر واحد برای اعتبارسنجی منطق‌های اصلی اکسپرت           |
-//|    برای اجرا، این فایل را در کنار سایر فایل‌های .mqh پروژه قرار دهید |
+//|                                                  TestRunner.mq5 |
+//|        (نسخه ۳.۰) تستر واحد با ساختار نهایی و بدون خطا           |
 //+------------------------------------------------------------------+
 #property copyright "Unit Tester"
-#property version   "1.3"
-// FIX: Removed invalid property 'tester_symbol' to fix compilation error.
+#property version   "3.0"
 
-// --- 1. افزودن تمام فایل‌های مورد نیاز پروژه ---
-// این فایل‌ها باید در کنار این تستر در یک پوشه باشند
+// --- ۱. افزودن کتابخانه‌های استاندارد و تعاریف پایه ---
 #include <Trade\Trade.mqh>
 #include <Controls\Dialog.mqh>
 #include <Controls\Button.mqh>
 #include <Controls\Edit.mqh>
 #include <Controls\Label.mqh>
 #include <Controls\Panel.mqh>
+#include <Canvas\Canvas.mqh> // <-- (مهم) اضافه شد برای CCanvas
 
 #include "Defines.mqh"
-#include "PanelDialog.mqh"     // برای تعریف کلاس CPanelDialog
-#include "SharedLogic.mqh"
-#include "StateManager.mqh"
-#include "Lines.mqh"
-// فایل‌های زیر مستقیماً تست نمی‌شوند اما برای کامپایل شدن نیاز هستند
-#include "MarketExecution.mqh"
-#include "PendingExecution.mqh"
+
+// --- ۲. (مهم) افزودن فایل‌های تعریف کلاس‌ها ---
+// کامپایلر باید قبل از ساخت متغیر، کلاس را بشناسد
 #include "DisplayCanvas.mqh"
 #include "SpreadAtrAnalysis.mqh"
+#include "PanelDialog.mqh"
 
-// --- 2. شبیه‌سازی (Mocking) متغیرها و اشیاء سراسری ---
-// توابع ما به این اشیاء نیاز دارند، حتی اگر از UI آنها استفاده نکنیم.
+// --- ۳. اعلان‌های پیشاپیش برای شکستن وابستگی چرخه‌ای ---
+#include "ForwardDeclarations.mqh"
+
+// --- ۴. متغیرهای سراسری و شبیه‌سازی‌ها ---
 CPanelDialog       ExtDialog;
 CDisplayCanvas     g_DisplayCanvas;
 CSpreadAtrAnalysis g_SpreadAtrPanel;
+void UpdateDisplayData(){}; // تابع خالی برای جلوگیری از خطا
 
-void UpdateDisplayData(){}; // یک تابع خالی برای جلوگیری از خطای کامپایل
+// --- ۵. فایل‌های منطقی که از متغیرهای بالا استفاده می‌کنند ---
+#include "Lines.mqh"
+#include "SharedLogic.mqh"
+#include "StateManager.mqh"
+#include "MarketExecution.mqh"
+#include "PendingExecution.mqh"
+#include "StairwayExecution.mqh"
 
-// --- 3. تعریف توابع تست ---
+// --- ۶. فریم‌ورک تست ---
+#include "TestFramework.mqh"
+
+
+// --- تعریف توابع تست ---
 void Test_CalculateLotSize();
 void Test_IsTradeRequestSafe();
 void Test_InitializeMagicNumber();
@@ -48,18 +56,15 @@ void Test_StateManager();
 int OnInit()
 {
     Print("--- INITIALIZING TEST ENVIRONMENT ---");
-    // FIX: Initialize the mock dialog to set default values like risk percentage.
     if(!ExtDialog.Create(0, "MockDialog", 0, 0, 0))
     {
-        Print("FATAL: Could not create mock dialog. Tests cannot run.");
+        Print("FATAL: Could not create mock dialog.");
         return(INIT_FAILED);
     }
-    ExtDialog.ResetAllControls(); // This sets the default risk percentage text in the edit box.
-    Print("Mock dialog initialized. Default risk is set via ResetAllControls().");
+    ExtDialog.ResetAllControls();
+    Print("Mock dialog initialized. Default inputs from Defines.mqh will be used.");
 
-
-    Print("\n--- STARTING LOGIC UNIT TESTS ---");
-    Print("NOTE: Tests are running with default 'input' values from Defines.mqh on symbol ", _Symbol);
+    Print("\n--- STARTING LOGIC UNIT TESTS ---\n");
 
     // فراخوانی هر تست به ترتیب
     Test_CalculateLotSize();
@@ -67,8 +72,8 @@ int OnInit()
     Test_InitializeMagicNumber();
     Test_StateManager();
 
-    Print("\n--- ALL TESTS COMPLETED ---");
-    Print("Please check the results above. 'PASS' indicates expected behavior, 'FAIL' indicates a problem.");
+    // چاپ گزارش نهایی
+    PrintTestSummary();
     
     return(INIT_SUCCEEDED);
 }
@@ -78,45 +83,35 @@ int OnInit()
 //+------------------------------------------------------------------+
 void Test_CalculateLotSize()
 {
-    Print("\n--- Testing Function: CalculateLotSize() ---");
+    Print("--- Testing Function: CalculateLotSize() ---");
+    
+    // تست ۱: ورودی‌های معقول (حالت درصد)
+    // Arrange
     double lot_size = 0, risk_money = 0;
-
     ExtDialog.SetCurrentState(STATE_PREP_MARKET_BUY);
-
-    // FIX: Use dynamic prices based on the current symbol to make the test universal.
     double current_ask = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
     double point = SymbolInfoDouble(_Symbol, SYMBOL_POINT);
     double valid_entry = current_ask;
-    double valid_sl = valid_entry - 200 * point; // 20 pips SL for any symbol
+    double valid_sl = valid_entry - 200 * point;
+    double expected_risk = AccountInfoDouble(ACCOUNT_BALANCE) * InpRiskPercent / 100.0;
+    
+    // Act
+    bool result1 = CalculateLotSize(valid_entry, valid_sl, lot_size, risk_money);
+    
+    // Assert
+    AssertTrue(result1, "Test 1.1 (Valid Inputs) - Should return true");
+    AssertTrue(lot_size > 0, "Test 1.2 (Valid Inputs) - Lot size should be positive");
+    AssertEquals(expected_risk, risk_money, "Test 1.3 (Valid Inputs) - Risk money should be calculated correctly");
 
-    // سناریو 1: ورودی‌های معقول
-    if(CalculateLotSize(valid_entry, valid_sl, lot_size, risk_money))
-    {
-        // FIX: Generic validation. Lot size must be positive, and risk amount must be correct.
-        double expected_risk = AccountInfoDouble(ACCOUNT_BALANCE) * InpRiskPercent / 100.0;
-        if(lot_size > 0 && MathAbs(risk_money - expected_risk) < 0.01)
-        {
-            Print("PASS: Test 1 (Valid Inputs) - Lot: ", lot_size, ", Risk: ", risk_money);
-        }
-        else
-        {
-            Print("FAIL: Test 1 (Valid Inputs) - Calculation is incorrect! Lot: ", lot_size, ", Risk: ", risk_money);
-        }
-    }
-    else
-    {
-        Print("FAIL: Test 1 (Valid Inputs) - Function returned false unexpectedly.");
-    }
-
-    // سناریو 2: فاصله SL صفر
-    if(!CalculateLotSize(valid_entry, valid_entry, lot_size, risk_money))
-    {
-        Print("PASS: Test 2 (Zero SL Distance) - Correctly failed to calculate lot.");
-    }
-    else
-    {
-        Print("FAIL: Test 2 (Zero SL Distance) - It should have returned false.");
-    }
+    // تست ۲: فاصله SL صفر
+    // Arrange
+    lot_size = 0; risk_money = 0;
+    
+    // Act
+    bool result2 = CalculateLotSize(valid_entry, valid_entry, lot_size, risk_money);
+    
+    // Assert
+    AssertFalse(result2, "Test 2 (Zero SL Distance) - Should return false");
 }
 
 
@@ -127,63 +122,38 @@ void Test_IsTradeRequestSafe()
 {
     Print("\n--- Testing Function: IsTradeRequestSafe() ---");
     
-    // FIX: Use dynamic prices for all test cases.
+    // Arrange
     double current_ask = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
     double point = SymbolInfoDouble(_Symbol, SYMBOL_POINT);
     double entry = current_ask;
     double sl = entry - 200 * point;
     double tp = entry + 400 * point;
-    
-    // --- بخش اول: تست مارجین ---
-    Print("  -- Margin Check --");
-    if(IsTradeRequestSafe(0.01, ORDER_TYPE_BUY, entry, sl, tp))
-    {
-        Print("PASS: Margin Test 1 (Sufficient Margin) - Correctly approved the trade.");
-    }
-    else
-    {
-        Print("FAIL: Margin Test 1 (Sufficient Margin) - Trade rejected unexpectedly. Error: ", GetLastError());
-    }
 
-    if(!IsTradeRequestSafe(9999.0, ORDER_TYPE_BUY, entry, sl, tp))
-    {
-        Print("PASS: Margin Test 2 (Insufficient Margin) - Correctly rejected the trade.");
-    }
-    else
-    {
-        Print("FAIL: Margin Test 2 (Insufficient Margin) - Trade was approved but it shouldn't have been.");
-    }
+    // تست ۱: مارجین کافی
+    AssertTrue(IsTradeRequestSafe(0.01, ORDER_TYPE_BUY, entry, sl, tp), "Test 1 (Sufficient Margin) - Should approve small trade");
+
+    // تست ۲: مارجین ناکافی
+    AssertFalse(IsTradeRequestSafe(9999.0, ORDER_TYPE_BUY, entry, sl, tp), "Test 2 (Insufficient Margin) - Should reject huge trade");
     
-    // --- بخش دوم: تست قوانین پراپ ---
-    Print("  -- Prop Firm Rules Check --");
-    g_prop_rules_active = true; // فعال‌سازی قوانین برای تست
-    g_start_of_day_base = 10000;
-    // حد ضرر روزانه 5% (مقدار پیش‌فرض) از 10,000 یعنی 500 دلار است. اکوئیتی نباید زیر 9500 برود.
-    
-    // سناریو 3: ریسک معامله در محدوده مجاز
+    // تست ۳: قوانین پراپ - ریسک امن
+    // Arrange
+    g_prop_rules_active = true;
+    g_start_of_day_base = AccountInfoDouble(ACCOUNT_BALANCE);
     double safe_lot = 0, safe_risk = 0;
-    CalculateLotSize(entry, sl, safe_lot, safe_risk); // Calculate lot for 1% risk
-    if(safe_lot > 0 && IsTradeRequestSafe(safe_lot, ORDER_TYPE_BUY, entry, sl, tp))
+    if(CalculateLotSize(entry, sl, safe_lot, safe_risk))
     {
-        Print("PASS: Prop Rule Test 1 (Safe Risk) - Correctly approved the trade with lot ", safe_lot);
-    }
-    else
-    {
-        Print("FAIL: Prop Rule Test 1 (Safe Risk) - Rejected a safe trade. Lot was ", safe_lot);
+       // Act & Assert
+       AssertTrue(IsTradeRequestSafe(safe_lot, ORDER_TYPE_BUY, entry, sl, tp), "Test 3 (Prop Rule - Safe Risk) - Should approve trade within DD limits");
     }
     
-    // سناریو 4: ریسک معامله خارج از محدوده مجاز
-    double unsafe_lot = safe_lot * 6; // Approx 6% risk, should violate the 5% DD rule
-    if(unsafe_lot > 0 && !IsTradeRequestSafe(unsafe_lot, ORDER_TYPE_BUY, entry, sl, tp))
-    {
-        Print("PASS: Prop Rule Test 2 (Unsafe Risk) - Correctly rejected the trade due to Daily DD with lot ", unsafe_lot);
-    }
-    else
-    {
-        Print("FAIL: Prop Rule Test 2 (Unsafe Risk) - Approved a trade that violates Daily DD rule. Lot was ", unsafe_lot);
-    }
+    // تست ۴: قوانین پراپ - ریسک ناامن
+    // Arrange
+    double unsafe_lot = safe_lot > 0 ? safe_lot * 10 : 1.0; // ریسک ۱۰٪، باید قانون ۵٪ را نقض کند
     
-    g_prop_rules_active = false; // غیرفعال کردن برای تست‌های بعدی
+    // Act & Assert
+    AssertFalse(IsTradeRequestSafe(unsafe_lot, ORDER_TYPE_BUY, entry, sl, tp), "Test 4 (Prop Rule - Unsafe Risk) - Should reject trade violating DD limits");
+    
+    g_prop_rules_active = false; // ریست برای تست‌های بعدی
 }
 
 
@@ -193,35 +163,28 @@ void Test_IsTradeRequestSafe()
 void Test_InitializeMagicNumber()
 {
     Print("\n--- Testing Function: InitializeMagicNumber() ---");
+    
+    // Arrange
     string gv_key = "AdvRiskCalc_Magic_" + (string)AccountInfoInteger(ACCOUNT_LOGIN) + "_" + _Symbol + "_" + (string)ChartID();
-
-    // آماده‌سازی: ابتدا متغیر سراسری را پاک می‌کنیم تا مطمئن شویم وجود ندارد.
     GlobalVariableDel(gv_key);
     
-    // سناریو 1: ساخت مجیک نامبر جدید
+    // تست ۱: ساخت مجیک نامبر جدید
+    // Act
     g_magic_number = 0;
     InitializeMagicNumber();
-    if(g_magic_number != 0 && GlobalVariableCheck(gv_key))
-    {
-        Print("PASS: Test 1 (Generate New) - Magic number created and saved successfully: ", g_magic_number);
-    }
-    else
-    {
-        Print("FAIL: Test 1 (Generate New) - Failed to create a new magic number.");
-    }
+    long first_magic = g_magic_number;
+    
+    // Assert
+    AssertTrue(first_magic != 0, "Test 1.1 (Generate New) - Magic number should be non-zero");
+    AssertTrue(GlobalVariableCheck(gv_key), "Test 1.2 (Generate New) - Global variable should be created");
 
-    // سناریو 2: خواندن مجیک نامبر موجود
-    long saved_magic = g_magic_number;
-    g_magic_number = 0; // ریست کردن متغیر
+    // تست ۲: خواندن مجیک نامبر موجود
+    // Act
+    g_magic_number = 0; // ریست
     InitializeMagicNumber();
-    if(g_magic_number == saved_magic)
-    {
-        Print("PASS: Test 2 (Load Existing) - Correctly loaded the existing magic number: ", g_magic_number);
-    }
-    else
-    {
-        Print("FAIL: Test 2 (Load Existing) - Did not load the correct magic number. Expected: ", saved_magic, ", Got: ", g_magic_number);
-    }
+    
+    // Assert
+    AssertEquals(first_magic, g_magic_number, "Test 2 (Load Existing) - Should load the same magic number");
 }
 
 
@@ -232,44 +195,30 @@ void Test_StateManager()
 {
     Print("\n--- Testing Functions: SaveStateToFile() & LoadStateFromFile() ---");
     
-    // آماده‌سازی: مقادیر ساختگی برای ذخیره کردن
+    // Arrange
     g_initial_balance = 10000.0;
     g_peak_equity = 12500.0;
-    g_current_trading_day = TimeCurrent() - 86400; // دیروز
-
-    // The function SaveStateToFile() internally checks 'InpEnablePropRules'.
-    // The test relies on its default value being 'true' in Defines.mqh.
-
-    // سناریو: ذخیره و بازیابی
+    g_current_trading_day = (datetime)(TimeCurrent() - 86400);
+    
+    // Act
     SaveStateToFile();
-
-    // ریست کردن متغیرها برای اطمینان از اینکه مقادیر از فایل خوانده می‌شوند
+    
+    // ریست متغیرها
+    double saved_balance = g_initial_balance;
+    double saved_equity = g_peak_equity;
     g_initial_balance = 0;
     g_peak_equity = 0;
-    g_current_trading_day = 0;
+    bool loaded = LoadStateFromFile();
 
-    if(LoadStateFromFile())
-    {
-        Print("PASS: State file loaded successfully.");
-        if(g_initial_balance == 10000.0 && g_peak_equity == 12500.0)
-        {
-            Print("   >> VALIDATION PASS: Data integrity confirmed.");
-        }
-        else
-        {
-            Print("   >> VALIDATION FAIL: Data mismatch after loading! InitialBalance: ", g_initial_balance, ", PeakEquity: ", g_peak_equity);
-        }
-    }
-    else
-    {
-        Print("FAIL: Could not load state from file. (Is 'InpEnablePropRules' set to 'true' in Defines.mqh?)");
-    }
+    // Assert
+    AssertTrue(loaded, "Test 1 (Load) - State file should be loaded successfully");
+    AssertEquals(saved_balance, g_initial_balance, "Test 2 (Data Integrity) - Initial balance should match");
+    AssertEquals(saved_equity, g_peak_equity, "Test 3 (Data Integrity) - Peak equity should match");
 }
 
 
 //+------------------------------------------------------------------+
 //| توابع خالی برای جلوگیری از خطای کامپایل                          |
-//| این توابع در فایل‌های دیگر تعریف شده‌اند اما در این تستر استفاده نمی‌شوند |
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason){}
 void OnTick(){}

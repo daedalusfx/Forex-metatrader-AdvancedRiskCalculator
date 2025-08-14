@@ -11,6 +11,7 @@
 #include <Controls\Label.mqh>
 #include <Controls\Panel.mqh>
 
+#include "ForwardDeclarations.mqh"
 
 //--- کلاس اصلی پنل
 class CPanelDialog : public CAppDialog
