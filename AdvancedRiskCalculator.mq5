@@ -56,6 +56,8 @@ int OnInit()
 
    // --- 2. مقداردهی اولیه متغیرهای اصلی ---
    InitializeMagicNumber(); // تضمین می‌کند که g_magic_number مقداردهی شده (خوانده شده یا جدید)
+   trade.SetExpertMagicNumber(g_magic_number); 
+
 
    if(InpEnablePropRules)
    {
