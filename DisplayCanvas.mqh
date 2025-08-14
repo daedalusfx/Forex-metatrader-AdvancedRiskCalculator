@@ -26,7 +26,7 @@ public:
                              double overall_buffer,
                              double overall_used_pct,
                              double needed_for_target, double profit_target_progress_pct,
-                             double spread);
+                             double spread,string status_message = "");
 };
 
 //--- سازنده
@@ -57,10 +57,10 @@ void CDisplayCanvas::Destroy(void)
 
 //--- (پیاده‌سازی طرح جدید) تابع اصلی برای نقاشی تمام اطلاعات روی بوم
 void CDisplayCanvas::Update(double entry, double sl, double tp, double lot, double risk_money,
-                              double daily_buffer, double daily_used_pct, color daily_color,
-                              double overall_buffer, double overall_used_pct,
-                              double needed_for_target, double profit_target_progress_pct,
-                              double spread)
+    double daily_buffer, double daily_used_pct, color daily_color,
+    double overall_buffer, double overall_used_pct,
+    double needed_for_target, double profit_target_progress_pct,
+    double spread,string status_message = "")
 {
     string currency = AccountInfoString(ACCOUNT_CURRENCY);
     int panel_width = m_canvas.Width();
@@ -142,6 +142,16 @@ void CDisplayCanvas::Update(double entry, double sl, double tp, double lot, doub
     m_canvas.FillRectangle(padding, current_y, panel_width - padding, current_y + bar_height, InpModernUIProgressBg);
     m_canvas.FillRectangle(padding, current_y, padding + (int)((panel_width - 2*padding) * overall_used_pct / 100.0), current_y + bar_height, overall_color);
     
+
+    if(status_message != "")
+    {
+        m_canvas.FontSet("Tahoma", InpCanvasMainFontSize, FW_BOLD);
+        // محاسبه موقعیت برای نمایش در وسط
+        int text_w = (int)m_canvas.TextWidth(status_message);
+        m_canvas.TextOut((panel_width - text_w) / 2, 60, status_message, InpWarningColor);
+    }
+
+
     // آپدیت نهایی بوم
     m_canvas.Update();
     ChartRedraw();

@@ -33,7 +33,7 @@ void CreateStyledLabel(string name, string text, datetime time, double price, co
         ObjectSetInteger(0, label_name, OBJPROP_YSIZE, 20);
         ObjectSetString(0, label_name, OBJPROP_FONT, "Tahoma Bold");
         ObjectSetInteger(0, label_name, OBJPROP_FONTSIZE, 8);
-        ObjectSetInteger(0, label_name, OBJPROP_BACK, false);
+        ObjectSetInteger(0, label_name, OBJPROP_BACK, true);
     }
     ObjectSetString(0, label_name, OBJPROP_TEXT, text);
     ObjectSetInteger(0, label_name, OBJPROP_BGCOLOR, bg_color);
@@ -61,31 +61,50 @@ double GetLinePrice(string line_name)
 }
 
 //--- ایجاد مجموعه اولیه خطوط
+// In Lines.mqh -> Replace the entire CreateTradeLines function with this
+// In Lines.mqh -> Replace the entire CreateTradeLines function with this new version
 void CreateTradeLines()
 {
    DeleteTradeLines();
    double ask = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
    double bid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
    double pip_value = GetPipValue();
+   ETradeState state = ExtDialog.GetCurrentState(); // Get the current state
+   bool is_stairway = (state == STATE_PREP_STAIRWAY_BUY || state == STATE_PREP_STAIRWAY_SELL);
    bool is_pending = CurrentStateIsPending();
-   bool isBuy = (ExtDialog.GetCurrentState() == STATE_PREP_MARKET_BUY || ExtDialog.GetCurrentState() == STATE_PREP_PENDING_BUY);
+   bool isBuy = (state == STATE_PREP_MARKET_BUY || state == STATE_PREP_PENDING_BUY || state == STATE_PREP_STAIRWAY_BUY);
 
    double initial_sl_pips = 20.0;
-   double initial_pending_distance_pips = 50.0;
+   double initial_distance_pips = 50.0; // A safe distance of 50 pips
    double sl_distance_points = initial_sl_pips * pip_value;
-   double pending_distance_points = initial_pending_distance_pips * pip_value;
-   
-   g_entry_price = is_pending ? (isBuy ? ask + pending_distance_points : bid - pending_distance_points) : (isBuy ? ask : bid);
-   g_sl_price = isBuy ? g_entry_price - sl_distance_points : g_entry_price + sl_distance_points;
-   double rr_sl_distance = MathAbs(g_entry_price - g_sl_price);
-   g_tp_price = isBuy ? g_entry_price + (rr_sl_distance * InpTP_RR_Value) : g_entry_price - (rr_sl_distance * InpTP_RR_Value);
+   double safe_distance_points = initial_distance_pips * pip_value;
 
-   CreateLine(LINE_ENTRY_PRICE, "", g_entry_price, InpEntryLineColor);
-   CreateLine(LINE_STOP_LOSS, "", g_sl_price, InpStopLineColor);
-   CreateLine(LINE_TAKE_PROFIT, "", g_tp_price, InpProfitLineColor);
+   // --- (FIX) The main logic change is here ---
+   // If the mode is Pending OR Stairway, place the entry line far from the current price
+   if(is_pending || is_stairway)
+   {
+      g_entry_price = isBuy ? ask + safe_distance_points : bid - safe_distance_points;
+   }
+   // Otherwise (it's a Market order), place it at the current price
+   else
+   {
+      g_entry_price = isBuy ? ask : bid;
+   }
+   // --- End of main logic change ---
+   
+   g_sl_price = isBuy ?
+                g_entry_price - sl_distance_points : g_entry_price + sl_distance_points;
+   double rr_sl_distance = MathAbs(g_entry_price - g_sl_price);
+   g_tp_price = isBuy ?
+                g_entry_price + (rr_sl_distance * InpTP_RR_Value) : g_entry_price - (rr_sl_distance * InpTP_RR_Value);
+
+   // Make the entry line selectable ONLY in Stairway and normal Pending mode
+   bool is_entry_selectable = (is_stairway || (is_pending && !InpAutoEntryPending));
+   CreateLine(LINE_ENTRY_PRICE, "", g_entry_price, InpEntryLineColor, is_entry_selectable);
+   CreateLine(LINE_STOP_LOSS, "", g_sl_price, InpStopLineColor, true); // SL is always selectable
+   CreateLine(LINE_TAKE_PROFIT, "", g_tp_price, InpProfitLineColor, InpTPMode == TP_MANUAL); // TP only in manual mode
 }
 
-//--- به‌روزرسانی لیبل‌های اطلاعاتی خطوط
 void UpdateLineInfoLabels()
 {
    if (ExtDialog.GetCurrentState() == STATE_IDLE) return;
@@ -94,34 +113,47 @@ void UpdateLineInfoLabels()
    double sl_price = GetLinePrice(LINE_STOP_LOSS);
    double tp_price = GetLinePrice(LINE_TAKE_PROFIT);
    if(entry_price == 0) return;
-
+   
    double lot_size = 0, risk_in_money = 0;
    if(sl_price > 0)
      CalculateLotSize(entry_price, sl_price, lot_size, risk_in_money);
-
+     
    datetime time_pos = TimeCurrent() + (PeriodSeconds() * 15); 
    double pip_value = GetPipValue();
+   ETradeState state = ExtDialog.GetCurrentState();
+   bool is_stairway = (state == STATE_PREP_STAIRWAY_BUY || state == STATE_PREP_STAIRWAY_SELL);
    
-   string entry_text = StringFormat("ENTRY | %.5f", entry_price);
-   CreateStyledLabel(LINE_ENTRY_PRICE, entry_text, time_pos, entry_price, InpPanelBackgroundColor, InpTextColor);
+   // --- Logic for Entry/Breakout Label ---
+   string entry_text;
+   color entry_bg_color;
+   if(is_stairway)
+   {
+      entry_text = StringFormat("BREAKOUT | %.5f", entry_price);
+      entry_bg_color = InpWarningColor; // Orange for armed state
+   }
+   else
+   {
+      entry_text = StringFormat("ENTRY | %.5f", entry_price);
+      entry_bg_color = InpBuyButtonColor; // A neutral or standard color
+   }
+   CreateStyledLabel(LINE_ENTRY_PRICE, entry_text, time_pos, entry_price, entry_bg_color, C'255,255,255');
 
+   // --- Logic for SL and TP Labels (to match prototype) ---
    if(sl_price > 0)
    {
       double sl_pips = (pip_value > 0) ? MathAbs(sl_price - entry_price) / pip_value : 0;
-      string sl_text = StringFormat("SL | %.5f | %.1f Pips | -$%.2f", sl_price, sl_pips, risk_in_money);
+      string sl_text = StringFormat("STOP LOSS | Risk $%.2f", risk_in_money);
       CreateStyledLabel(LINE_STOP_LOSS, sl_text, time_pos, sl_price, InpStopLineColor, C'255,255,255');
 
       if(tp_price > 0)
       {
          double tp_pips = (pip_value > 0) ? MathAbs(tp_price - entry_price) / pip_value : 0;
          double rr_ratio = (sl_pips > 0) ? tp_pips / sl_pips : 0;
-         double reward_in_money = (risk_in_money > 0 && rr_ratio > 0) ? risk_in_money * rr_ratio : 0;
-         string tp_text = StringFormat("TP | %.5f | %.1f Pips | +$%.2f | R:R %.2f", tp_price, tp_pips, reward_in_money, rr_ratio);
+         string tp_text = StringFormat("TAKE PROFIT | R:R %.1f", rr_ratio);
          CreateStyledLabel(LINE_TAKE_PROFIT, tp_text, time_pos, tp_price, InpProfitLineColor, C'255,255,255');
       }
    }
 }
-
 //--- به‌روزرسانی خودکار خط TP
 void UpdateAutoTPLine()
 {

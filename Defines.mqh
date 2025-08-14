@@ -7,8 +7,26 @@
 
 //--- Enums
 enum ETakeProfitMode { TP_MANUAL, TP_RR_RATIO };
-enum ETradeState { STATE_IDLE, STATE_PREP_MARKET_BUY, STATE_PREP_MARKET_SELL, STATE_PREP_PENDING_BUY, STATE_PREP_PENDING_SELL };
+enum ETradeState { 
+    STATE_IDLE, 
+    STATE_PREP_MARKET_BUY,
+     STATE_PREP_MARKET_SELL, 
+     STATE_PREP_PENDING_BUY, 
+     STATE_PREP_PENDING_SELL,
+  // --- حالت‌های جدید برای ورود پلکانی ---
+  STATE_PREP_STAIRWAY_BUY,
+  STATE_PREP_STAIRWAY_SELL,
+  STATE_STAIRWAY_WAITING_FOR_CLOSE // حالتی که پله اول وارد شده و منتظر کلوز کندل هستیم
+
+};
 enum ENUM_Risk_Mode { RISK_PERCENT, RISK_MONEY };
+
+
+
+// --- (کد جدید) ورودی‌های مربوط به استراتژی پلکانی ---
+input group "Stairway Entry Settings"
+input string InpStairwayLevelName = "Breakout_Level";  // نام خط افقی برای تشخیص شکست
+input double InpStairwayInitialPercent = 30.0;       // درصد حجم ورودی در پله اول
 
 //--- Input Settings (User-Customizable)
 input group "Risk & Safety Settings"
@@ -26,6 +44,8 @@ input group "Pending Order Settings"
 input bool InpAutoEntryPending = false; // Enable rigid SL/Entry/TP movement
 
 input group "Panel & Button Colors"
+input int PanelHigth = 350;
+input int PanelWidth = 240;
 input color InpSubPanelColor = C'30, 34, 43'; // (جدید) رنگ پنل‌های داخلی
 input color InpPanelBackgroundColor= C'245, 245, 245';   // پس‌زمینه اصلی پنل (سفید دودی)
 input color InpTextColor           = C'30, 30, 30';      // رنگ متن اصلی (خاکستری تیره/مشکی)

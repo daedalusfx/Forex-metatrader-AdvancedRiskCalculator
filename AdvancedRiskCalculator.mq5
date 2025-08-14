@@ -32,6 +32,8 @@ CSpreadAtrAnalysis g_SpreadAtrPanel;
 #include "SharedLogic.mqh"
 #include "MarketExecution.mqh"
 #include "PendingExecution.mqh"
+#include "StairwayExecution.mqh" // <-- اضافه کردن این خط
+
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -123,6 +125,16 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTick()
 {
+
+   ETradeState current_state = ExtDialog.GetCurrentState();
+   if(current_state >= STATE_PREP_STAIRWAY_BUY && current_state <= STATE_STAIRWAY_WAITING_FOR_CLOSE)
+   {
+      ManageStairwayExecution();
+   }
+
+   // مدیریت استاپ لاس مخفی باید همیشه اجرا شود تا معاملات باز را محافظت کند
+   ManageStairwayHiddenSL();
+
    double spread = (SymbolInfoDouble(_Symbol, SYMBOL_ASK) - SymbolInfoDouble(_Symbol, SYMBOL_BID)) / _Point;
 
    g_SpreadAtrPanel.Update(); 
@@ -267,10 +279,16 @@ void UpdateDisplayData()
 
 
     }
+
+    string status_msg = "";
+    if(ExtDialog.GetCurrentState() == STATE_STAIRWAY_WAITING_FOR_CLOSE)
+    {
+        status_msg = "Waiting for Candle Close...";
+    }
     
     g_DisplayCanvas.Update(entry_price, sl_price, tp_price, lot_size, risk_in_money,
       daily_buffer, daily_used_pct, daily_color,
       overall_buffer, overall_used_pct,
       needed_for_target, profit_target_progress_pct,
-      spread); 
+      spread,status_msg); 
 }

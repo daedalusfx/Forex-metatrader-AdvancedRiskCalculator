@@ -38,6 +38,12 @@ private:
     CEdit             m_edit_risk_pending;
     CButton           m_btn_execute_pending;
 
+        //--- (جدید) کنترل‌های بخش Stairway ---
+    CPanel            m_panel_stairway;
+    CLabel            m_lbl_title_stairway;
+    CButton           m_btn_prep_stairway_buy;
+    CButton           m_btn_prep_stairway_sell;
+
 public:
                       CPanelDialog(void);
                      ~CPanelDialog(void);
@@ -64,6 +70,9 @@ protected:
     //--- ایجاد کنترل‌ها
     bool              CreateMarketPanel(int x, int y);
     bool              CreatePendingPanel(int x, int y);
+    bool              CreateStairwayPanel(int x, int y);
+    void              OnClickPrepStairwayBuy(void);
+    void              OnClickPrepStairwaySell(void);
 
     //--- مدیریت رویدادهای کلیک
     void              OnClickPrepMarketBuy(void);
@@ -85,7 +94,21 @@ EVENT_MAP_BEGIN(CPanelDialog)
     ON_EVENT(ON_CLICK, m_btn_execute_pending, OnClickExecutePending)
     ON_EVENT(ON_CHANGE, m_edit_risk_market, OnRiskEditChange)
     ON_EVENT(ON_CHANGE, m_edit_risk_pending, OnRiskEditChange)
-EVENT_MAP_END(CAppDialog)
+    ON_EVENT(ON_CLICK, m_btn_prep_stairway_buy, OnClickPrepStairwayBuy)
+    ON_EVENT(ON_CLICK, m_btn_prep_stairway_sell, OnClickPrepStairwaySell)
+    EVENT_MAP_END(CAppDialog)
+
+
+
+// توابع جدید در کلاس
+void CPanelDialog::OnClickPrepStairwayBuy(void) {
+    if(m_current_state >= STATE_PREP_STAIRWAY_BUY) { ResetToIdleState(); return; }
+    SetupStairwayTrade(STATE_PREP_STAIRWAY_BUY);
+}
+void CPanelDialog::OnClickPrepStairwaySell(void) {
+    if(m_current_state >= STATE_PREP_STAIRWAY_BUY) { ResetToIdleState(); return; }
+    SetupStairwayTrade(STATE_PREP_STAIRWAY_SELL);
+}
 
 //--- سازنده
 CPanelDialog::CPanelDialog(void) : m_current_state(STATE_IDLE), m_is_trade_logic_valid(false)
@@ -99,13 +122,15 @@ CPanelDialog::~CPanelDialog(void)
 //--- ایجاد پنل اصلی
 bool CPanelDialog::Create(const long chart, const string name, const int subwin, const int x1, const int y1)
 {
-    if(!CAppDialog::Create(chart, name, subwin, x1, y1, x1 + 240, y1 + 205))
+    if(!CAppDialog::Create(chart, name, subwin, x1, y1, x1 + PanelWidth, y1 + PanelHigth))
         return(false);
 
     ObjectSetInteger(m_chart_id, m_name + "_background", OBJPROP_BGCOLOR, InpPanelBackgroundColor);
 
     if(!CreateMarketPanel(10, 10)) return(false);
     if(!CreatePendingPanel(10, 105)) return(false);
+    if(!CreateStairwayPanel(10, 200)) return(false); 
+
 
     ResetAllControls();
     return(true);
@@ -201,6 +226,30 @@ void CPanelDialog::HandleDragEvent(const string &dragged_object)
     }
     UpdateAllLabels();
 }
+
+
+// (جدید) تابع ایجاد پنل پلکانی
+bool CPanelDialog::CreateStairwayPanel(int x, int y)
+{
+    if(!m_panel_stairway.Create(m_chart_id, "StairwayPanel", m_subwin, x, y, x + 220, y + 60)) return false;
+    m_panel_stairway.ColorBackground(InpPanelBackgroundColor);
+    if(!Add(m_panel_stairway)) return false;
+
+    if(!m_lbl_title_stairway.Create(m_chart_id, "StairwayTitle", m_subwin, x+10, y+5, x+210, y+25)) return false;
+    m_lbl_title_stairway.Text("Stairway Entry");
+    if(!Add(m_lbl_title_stairway)) return false;
+
+    if(!m_btn_prep_stairway_buy.Create(m_chart_id, "PrepStairwayBuy", m_subwin, x+10, y+30, x+105, y+55)) return false;
+    m_btn_prep_stairway_buy.Text("Arm Buy");
+    if(!Add(m_btn_prep_stairway_buy)) return false;
+
+    if(!m_btn_prep_stairway_sell.Create(m_chart_id, "PrepStairwaySell", m_subwin, x+115, y+30, x+210, y+55)) return false;
+    m_btn_prep_stairway_sell.Text("Arm Sell");
+    if(!Add(m_btn_prep_stairway_sell)) return false;
+
+    return true;
+}
+
 
 //--- بازنشانی تمام کنترل‌ها به حالت اولیه
 void CPanelDialog::ResetAllControls()
