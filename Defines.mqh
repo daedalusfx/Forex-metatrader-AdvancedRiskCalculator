@@ -48,7 +48,7 @@ input int PanelHigth = 350;
 input int PanelWidth = 240;
 input color InpSubPanelColor = C'30, 34, 43'; // (جدید) رنگ پنل‌های داخلی
 input color InpPanelBackgroundColor= C'245, 245, 245';   // پس‌زمینه اصلی پنل (سفید دودی)
-input color InpTextColor           = C'30, 30, 30';      // رنگ متن اصلی (خاکستری تیره/مشکی)
+input color InpTextColor           = C'229, 231, 235';   // رنگ متن اصلی (خاکستری روشن)
 input color InpTextSecondaryColor  = C'100, 100, 100';   // رنگ متن ثانویه (خاکستری)
 //--- رنگ‌های فیلد ورودی
 input color InpInputBgColor        = C'255, 255, 255';   // پس‌زمینه فیلد ورودی (سفید)
@@ -135,7 +135,7 @@ input color InpModernUIProgressBg   = C'55, 65, 81';    // پس‌زمینه خ�
 
 
 input group "UI Layout Settings"
-input int InpButtonWidth   = 90; // عرض دکمه‌ها
+input int InpButtonWidth   = 70; // عرض دکمه‌ها
 input int InpButtonHeight  = 25; // ارتفاع دکمه‌ها
 input int InpButtonPadding = 8;  // فاصله بین دکمه‌ها
 input int InpButtonGap     = 5;  // فاصله (گپ) بین دکمه‌ها
