@@ -1,38 +1,33 @@
 //+------------------------------------------------------------------+
 //|                                     AdvancedRiskCalculator.mq5 |
-//|                                     Version 1    |
+//|                                     Version 2.1 - Final UI     |
 //+------------------------------------------------------------------+
 #property copyright "daedalusfx"
 #property link      "your.website.com"
 #property version   "2.1"
-#property description "نسخه ۲.۱: رفع خطاهای کامپایل مربوط به وابستگی فایل‌ها."
+#property description "نسخه ۲.۱: UI نهایی با نمایش آمار معاملات باز."
 
 //--- کتابخانه‌های استاندارد
-
 #include <Trade\Trade.mqh>
 
 //--- فایل‌های پروژه به ترتیب وابستگی
-#include "Defines.mqh"         // 1. اول تعاریف پایه
-#include "PanelDialog.mqh"     // 2. سپس کلاس اصلی UI
-#include "DisplayCanvas.mqh"   // 3. (جدید) کلاس پنل نمایشی
+#include "Defines.mqh"
+#include "PanelDialog.mqh"
+#include "DisplayCanvas.mqh"
 #include "StateManager.mqh"
-#include "SpreadAtrAnalysis.mqh" 
+#include "SpreadAtrAnalysis.mqh"
 
-
-
-//--- حالا که کلاس تعریف شده، متغیر سراسری آن را ایجاد می‌کنیم
+//--- متغیرهای سراسری
 CPanelDialog ExtDialog;
-
-
 CDisplayCanvas g_DisplayCanvas;
 CSpreadAtrAnalysis g_SpreadAtrPanel;
 
-//--- اکنون فایل‌های منطقی را اضافه می‌کنیم که از متغیر ExtDialog استفاده می‌کنند
+//--- فایل‌های منطقی
 #include "Lines.mqh"
 #include "SharedLogic.mqh"
 #include "MarketExecution.mqh"
 #include "PendingExecution.mqh"
-#include "StairwayExecution.mqh" // <-- اضافه کردن این خط
+#include "StairwayExecution.mqh"
 
 
 //+------------------------------------------------------------------+
@@ -47,24 +42,19 @@ int OnInit()
    }
    ExtDialog.Run();
    if(!g_DisplayCanvas.Create(0, "DisplayCanvas", 0, InpDisplayPanelX, InpDisplayPanelY, InpDisplayPanelW, InpDisplayPanelH))
-
    {
       return(INIT_FAILED);
    }
-
    g_SpreadAtrPanel.Initialize(CORNER_RIGHT_UPPER, 15, 30);
 
    // --- 2. مقداردهی اولیه متغیرهای اصلی ---
-   InitializeMagicNumber(); // تضمین می‌کند که g_magic_number مقداردهی شده (خوانده شده یا جدید)
-   trade.SetExpertMagicNumber(g_magic_number); 
-
+   InitializeMagicNumber();
+   trade.SetExpertMagicNumber(g_magic_number);
 
    if(InpEnablePropRules)
    {
       g_prop_rules_active = true;
       bool stateFileExists = LoadStateFromFile();
-
-      // اگر فایل وضعیتی وجود نداشت، این اولین اجرای واقعی است
       if(!stateFileExists)
       {
          Print("No state file found. Initializing prop firm rules for the first time.");
@@ -72,31 +62,30 @@ int OnInit()
          g_peak_equity = g_initial_balance;
          g_current_trading_day = TimeTradeServer();
          g_start_of_day_base = (InpDailyDDBase == DD_FROM_BALANCE) ? AccountInfoDouble(ACCOUNT_BALANCE) : AccountInfoDouble(ACCOUNT_EQUITY);
-         ArrayFree(g_daily_profits); // اطمینان از خالی بودن آرایه
-         SaveStateToFile();          // ذخیره وضعیت کاملاً جدید
+         ArrayFree(g_daily_profits);
+         SaveStateToFile();
       }
-      // اگر فایل وضعیت وجود داشت، باید چک کنیم که آیا روز جدیدی شروع شده یا نه
       else
       {
          datetime server_time = TimeTradeServer();
          long current_day_index = (long)(server_time / 86400);
          long last_day_index = (long)(g_current_trading_day / 86400);
-
          if(current_day_index > last_day_index)
          {
             Print("New trading day detected upon initialization.");
-            // منطق شروع روز جدید را اینجا هم اجرا می‌کنیم
             double end_of_day_base = (InpDailyDDBase == DD_FROM_BALANCE) ? AccountInfoDouble(ACCOUNT_BALANCE) : AccountInfoDouble(ACCOUNT_EQUITY);
             double previous_day_profit = end_of_day_base - g_start_of_day_base;
             
-            int new_size = ArraySize(g_daily_profits) + 1;
-            ArrayResize(g_daily_profits, new_size);
-            g_daily_profits[new_size - 1].date = g_current_trading_day;
-            g_daily_profits[new_size - 1].profit = previous_day_profit;
-
+            if(InpEnableConsistencyRule)
+            {
+               int new_size = ArraySize(g_daily_profits) + 1;
+               ArrayResize(g_daily_profits, new_size);
+               g_daily_profits[new_size - 1].date = g_current_trading_day;
+               g_daily_profits[new_size - 1].profit = previous_day_profit;
+            }
+            
             g_current_trading_day = server_time;
             g_start_of_day_base = end_of_day_base;
-            
             SaveStateToFile();
          }
       }
@@ -113,11 +102,10 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-   //--- حذف تمام اشیاء ایجاد شده
-   SaveStateToFile(); 
-   DeleteTradeLines(); // خطوط را دستی حذف می‌کنیم
+   SaveStateToFile();
+   DeleteTradeLines();
    g_SpreadAtrPanel.Deinitialize();
-   g_DisplayCanvas.Destroy(); // (جدید) حذف پنل نمایشی
+   g_DisplayCanvas.Destroy();
    ExtDialog.Destroy(reason);
    Comment("");
 }
@@ -127,21 +115,17 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTick()
 {
-
    ETradeState current_state = ExtDialog.GetCurrentState();
    if(current_state >= STATE_PREP_STAIRWAY_BUY && current_state <= STATE_STAIRWAY_WAITING_FOR_CLOSE)
    {
       ManageStairwayExecution();
    }
 
-   // مدیریت استاپ لاس مخفی باید همیشه اجرا شود تا معاملات باز را محافظت کند
    ManageStairwayHiddenSL();
-
-   double spread = (SymbolInfoDouble(_Symbol, SYMBOL_ASK) - SymbolInfoDouble(_Symbol, SYMBOL_BID)) / _Point;
-
-   g_SpreadAtrPanel.Update(); 
-   // شرط if بدون نقطه ویرگول در انتها نوشته می‌شود
-   if(ExtDialog.GetCurrentState() != STATE_IDLE)
+   g_SpreadAtrPanel.Update();
+   
+   // نمایشگر فقط زمانی آپدیت می‌شود که نیاز باشد (در حالت آماده‌باش یا وقتی معامله باز است)
+   if(ExtDialog.GetCurrentState() != STATE_IDLE || PositionsTotal() > 0)
    {
       UpdateDisplayData();
    }
@@ -152,30 +136,19 @@ void OnTick()
 //+------------------------------------------------------------------+
 void OnChartEvent(const int id, const long &lparam, const double &dparam, const string &sparam)
 {
-   //--- ارسال رویدادها به پنل اصلی برای مدیریت
    ExtDialog.ChartEvent(id, lparam, dparam, sparam);
-
-   //--- رویدادهای کشیدن خط (Drag) را به صورت جداگانه مدیریت می‌کنیم
    if(id == CHARTEVENT_OBJECT_DRAG)
    {
       ExtDialog.HandleDragEvent(sparam);
    }
 }
-//+------------------------------------------------------------------+
-
-
-
-// In AdvancedRiskCalculator.mq5
-//+------------------------------------------------------------------+
-//|   محاسبه و به‌روزرسانی آمار پراپ (FINAL UI VERSION)              |
-//+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
-//|   محاسبه و نقاشی تمام داده‌های نمایشی (نسخه نهایی Canvas)        |
+//|   محاسبه و نقاشی تمام داده‌های نمایشی (نسخه کامل و صحیح)         |
 //+------------------------------------------------------------------+
 void UpdateDisplayData()
 {
-    // --- بخش ۱: جمع‌آوری داده‌های مربوط به معامله ---
+    // --- بخش ۱: جمع‌آوری داده‌های مربوط به معامله جدید ---
     double spread = (SymbolInfoDouble(_Symbol, SYMBOL_ASK) - SymbolInfoDouble(_Symbol, SYMBOL_BID)) / _Point;
     double entry_price = GetLinePrice(LINE_ENTRY_PRICE);
     double sl_price = GetLinePrice(LINE_STOP_LOSS);
@@ -184,113 +157,150 @@ void UpdateDisplayData()
     if(entry_price > 0 && sl_price > 0)
         CalculateLotSize(entry_price, sl_price, lot_size, risk_in_money);
 
+    // محاسبه آمار معاملات باز
+    LiveTradeStats live_stats = CalculateLiveTradeStats();
 
-        double overall_used_pct = 0; 
-        double profit_target_progress_pct = 0;
     // --- بخش ۲: جمع‌آوری داده‌های مربوط به قوانین پراپ ---
     double daily_buffer = 0, daily_used_pct = 0, overall_buffer = 0, needed_for_target = 0;
-    color daily_color = InpTextColor; // رنگ پیش‌فرض
+    double overall_used_pct = 0, profit_target_progress_pct = 0;
+    color daily_color = InpTextColor;
 
     if(g_prop_rules_active)
     {
         // بررسی روز جدید
         long current_day_index = (long)(TimeTradeServer() / 86400);
         long last_day_index = (long)(g_current_trading_day / 86400);
-      if(current_day_index > last_day_index)
-{
-    // --- (NEW) Calculate and log previous day's profit ---
-    if(InpEnableConsistencyRule)
-    {
-        // The profit is the change in the base equity/balance from start to end of the day
-        double end_of_day_base = (InpDailyDDBase == DD_FROM_BALANCE) ? AccountInfoDouble(ACCOUNT_BALANCE) : AccountInfoDouble(ACCOUNT_EQUITY);
-        double previous_day_profit = end_of_day_base - g_start_of_day_base;
+        if(current_day_index > last_day_index)
+        {
+            double end_of_day_base = (InpDailyDDBase == DD_FROM_BALANCE) ? AccountInfoDouble(ACCOUNT_BALANCE) : AccountInfoDouble(ACCOUNT_EQUITY);
+            double previous_day_profit = end_of_day_base - g_start_of_day_base;
 
-        // Add to our log array
-        int new_size = ArraySize(g_daily_profits) + 1;
-        ArrayResize(g_daily_profits, new_size);
-        g_daily_profits[new_size - 1].date = g_current_trading_day;
-        g_daily_profits[new_size - 1].profit = previous_day_profit;
-    }
+            if(InpEnableConsistencyRule)
+            {
+               int new_size = ArraySize(g_daily_profits) + 1;
+               ArrayResize(g_daily_profits, new_size);
+               g_daily_profits[new_size - 1].date = g_current_trading_day;
+               g_daily_profits[new_size - 1].profit = previous_day_profit;
+            }
 
-    // --- Now, reset for the new day ---
-    g_current_trading_day = TimeTradeServer();
-    g_start_of_day_base = (InpDailyDDBase == DD_FROM_BALANCE) ? AccountInfoDouble(ACCOUNT_BALANCE) : AccountInfoDouble(ACCOUNT_EQUITY);
+            g_current_trading_day = TimeTradeServer();
+            g_start_of_day_base = end_of_day_base;
+            SaveStateToFile();
+        }
 
-    SaveStateToFile();
-
-   }
-
-
-   if(InpOverallDDType == DD_TYPE_TRAILING)
-   {
-       double current_equity = AccountInfoDouble(ACCOUNT_EQUITY);
-       // آیا اکوئیتی فعلی یک رکورد جدید ثبت کرده است؟
-       if(current_equity > g_peak_equity)
-       {
-           // اگر بله، هم مقدار را آپدیت کن و هم بلافاصله وضعیت را ذخیره کن
-           g_peak_equity = current_equity;
-           SaveStateToFile();
-       }
-   }
-
+        // بررسی و به‌روزرسانی بالاترین اکوئیتی (برای دراودان شناور)
+        if(InpOverallDDType == DD_TYPE_TRAILING)
+        {
+            double current_equity = AccountInfoDouble(ACCOUNT_EQUITY);
+            if(current_equity > g_peak_equity)
+            {
+                g_peak_equity = current_equity;
+                SaveStateToFile();
+            }
+        }
+        
+        // محاسبات دراودان و هدف سود
         double current_equity = AccountInfoDouble(ACCOUNT_EQUITY);
-
-        // محاسبات دراودان روزانه
         double daily_dd_limit_level = g_start_of_day_base * (1 - InpMaxDailyDrawdownPercent / 100.0);
         daily_buffer = current_equity - daily_dd_limit_level;
         double daily_dd_total_allowed = g_start_of_day_base - daily_dd_limit_level;
         daily_used_pct = (daily_dd_total_allowed > 0.001) ? (1.0 - daily_buffer / daily_dd_total_allowed) * 100.0 : 0;
         
-        // تنظیم رنگ پویا
         if(daily_buffer < 0) daily_color = InpDangerColor;
         else if(daily_used_pct > 85) daily_color = InpDangerColor;
         else if(daily_used_pct > 60) daily_color = InpWarningColor;
         else daily_color = InpSafeColor;
 
-        // محاسبات دراودان کلی
         double overall_dd_base = (InpOverallDDType == DD_TYPE_STATIC) ? g_initial_balance : g_peak_equity;
         double overall_dd_limit_level = overall_dd_base * (1 - InpMaxOverallDrawdownPercent / 100.0);
         overall_buffer = current_equity - overall_dd_limit_level;
-
         double overall_dd_total_allowed = overall_dd_base - overall_dd_limit_level;
-         overall_used_pct = (overall_dd_total_allowed > 0.001) ?
-           (1.0 - overall_buffer / overall_dd_total_allowed) * 100.0 : 0;
-           if(overall_buffer < 0) overall_used_pct = 100; // Ensure bar is full if limit is breached
-    
+        overall_used_pct = (overall_dd_total_allowed > 0.001) ? (1.0 - overall_buffer / overall_dd_total_allowed) * 100.0 : 0;
+        if(overall_buffer < 0) overall_used_pct = 100;
 
-        // محاسبه هدف سود
         double profit_target_level = g_initial_balance * (1 + InpProfitTargetPercent / 100.0);
         needed_for_target = profit_target_level - AccountInfoDouble(ACCOUNT_BALANCE);
-
-
-        
-         if(needed_for_target > 0)
-         {
+        if(needed_for_target > 0)
+        {
             double total_profit_needed_from_start = g_initial_balance * (InpProfitTargetPercent / 100.0);
             double current_profit = AccountInfoDouble(ACCOUNT_BALANCE) - g_initial_balance;
             if(total_profit_needed_from_start > 0)
                profit_target_progress_pct = (current_profit / total_profit_needed_from_start) * 100.0;
-         } 
-         else 
-         {
-            profit_target_progress_pct = 100.0; // Target is reached or surpassed
-         }
-         // Ensure the value is between 0 and 100 for the progress bar
-         profit_target_progress_pct = MathMax(0, MathMin(profit_target_progress_pct, 100));
-
-
-
+        } 
+        else 
+        {
+            profit_target_progress_pct = 100.0;
+        }
+        profit_target_progress_pct = MathMax(0, MathMin(profit_target_progress_pct, 100));
     }
 
+    // پیام وضعیت
     string status_msg = "";
     if(ExtDialog.GetCurrentState() == STATE_STAIRWAY_WAITING_FOR_CLOSE)
     {
         status_msg = "Waiting for Candle Close...";
     }
     
+    // --- بخش ۳: ارسال تمام داده‌ها به پنل نمایشی ---
     g_DisplayCanvas.Update(entry_price, sl_price, tp_price, lot_size, risk_in_money,
-      daily_buffer, daily_used_pct, daily_color,
-      overall_buffer, overall_used_pct,
-      needed_for_target, profit_target_progress_pct,
-      spread,status_msg); 
+                           daily_buffer, daily_used_pct, daily_color,
+                           overall_buffer, overall_used_pct,
+                           needed_for_target, profit_target_progress_pct,
+                           spread, status_msg,
+                           live_stats);
+}
+
+//+------------------------------------------------------------------+
+//|    محاسبه آمار لحظه‌ای تمام معاملات باز                          |
+//+------------------------------------------------------------------+
+// In AdvancedRiskCalculator.mq5 -> Replace the entire CalculateLiveTradeStats function
+
+//+------------------------------------------------------------------+
+//|    (جدید) محاسبه آمار لحظه‌ای تمام معاملات باز (با محاسبه پاداش) |
+//+------------------------------------------------------------------+
+LiveTradeStats CalculateLiveTradeStats()
+{
+    LiveTradeStats stats;
+    stats.total_pl = 0;
+    stats.total_risk = 0;
+    stats.total_reward = 0; // مقداردهی اولیه فیلد جدید
+    stats.position_count = 0;
+
+    for(int i = PositionsTotal() - 1; i >= 0; i--)
+    {
+        ulong ticket = PositionGetTicket(i);
+        if(PositionSelectByTicket(ticket) && PositionGetInteger(POSITION_MAGIC) == g_magic_number)
+        {
+            stats.total_pl += PositionGetDouble(POSITION_PROFIT);
+            stats.position_count++;
+
+            double open_price = PositionGetDouble(POSITION_PRICE_OPEN);
+            double sl_price = PositionGetDouble(POSITION_SL);
+            double tp_price = PositionGetDouble(POSITION_TP); // دریافت حد سود
+            double volume = PositionGetDouble(POSITION_VOLUME);
+            string symbol = PositionGetString(POSITION_SYMBOL);
+            ENUM_ORDER_TYPE order_type = (ENUM_ORDER_TYPE)PositionGetInteger(POSITION_TYPE);
+
+            // محاسبه ریسک بالقوه (فاصله تا SL)
+            if(sl_price > 0)
+            {
+                double potential_loss = 0;
+                if(OrderCalcProfit(order_type, symbol, volume, open_price, sl_price, potential_loss))
+                {
+                    stats.total_risk += MathAbs(potential_loss);
+                }
+            }
+            
+            // +++ (جدید) محاسبه پاداش بالقوه (فاصله تا TP) +++
+            if(tp_price > 0)
+            {
+                double potential_profit = 0;
+                if(OrderCalcProfit(order_type, symbol, volume, open_price, tp_price, potential_profit))
+                {
+                    stats.total_reward += MathAbs(potential_profit);
+                }
+            }
+        }
+    }
+    return stats;
 }

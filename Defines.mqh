@@ -120,8 +120,8 @@ input int InpDisplayPanelX = 260; // موقعیت X پنل نمایش
 input int InpDisplayPanelY = 30;  // موقعیت Y پنل نمایش
 input int InpCanvasMainFontSize = 14;     //  سایز فونت اصلی کنواس
 input int InpCanvasSmallFontSize = 12;    //  سایز فونت کوچک کنواس
-input int InpDisplayPanelW = 220;  //  عرض پنل نمایشی
-input int InpDisplayPanelH = 220;  //  ارتفاع پنل نمایشی
+input int InpDisplayPanelW = 250;  //  عرض پنل نمایشی
+input int InpDisplayPanelH = 250;  //  ارتفاع پنل نمایشی
 
 
 input group "Modern UI (Dark) Style Settings"
@@ -151,5 +151,13 @@ struct DailyProfitLog
 };
 DailyProfitLog g_daily_profits[]; // آرایه داینامیک برای نگهداری تاریخچه سود
 
+
+struct LiveTradeStats
+{
+    double   total_pl;
+    double   total_reward;
+    double   total_risk;
+    int      position_count;
+};
 
 #endif // DEFINES_MQH
