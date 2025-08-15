@@ -154,17 +154,49 @@ void UpdateDisplayData()
     double sl_price = GetLinePrice(LINE_STOP_LOSS);
     double tp_price = GetLinePrice(LINE_TAKE_PROFIT);
     double lot_size = 0, risk_in_money = 0;
+
+    // --- متغیرهای جدید برای محاسبه ریسک به ریوارد ---
+    string rr_string = "R/R: N/A"; // مقدار پیش‌فرض
+
     if(entry_price > 0 && sl_price > 0)
+    {
         CalculateLotSize(entry_price, sl_price, lot_size, risk_in_money);
 
+        // --- محاسبه ریوارد و نسبت R:R در صورتی که حد سود تعیین شده باشد ---
+        if(tp_price > 0 && lot_size > 0 && risk_in_money > 0)
+        {
+            bool isBuy = (sl_price < entry_price);
+            // اطمینان از منطقی بودن حد سود
+            if ((isBuy && tp_price > entry_price) || (!isBuy && tp_price < entry_price))
+            {
+                ENUM_ORDER_TYPE order_type = isBuy ? ORDER_TYPE_BUY : ORDER_TYPE_SELL;
+                double reward_in_money = 0;
+                
+                // محاسبه سود بالقوه (ریوارد)
+                if(OrderCalcProfit(order_type, _Symbol, lot_size, entry_price, tp_price, reward_in_money))
+                {
+                    double rr_ratio = MathAbs(reward_in_money) / risk_in_money;
+                    rr_string = "R/R: 1:" + DoubleToString(rr_ratio, 2);
+                }
+                else
+                {
+                    rr_string = "R/R: Calc Error";
+                }
+            }
+            else
+            {
+                rr_string = "R/R: Invalid TP"; // اگر حد سود در جای نامناسبی باشد
+            }
+        }
+    }
+    
     // محاسبه آمار معاملات باز
     LiveTradeStats live_stats = CalculateLiveTradeStats();
-
+    
     // --- بخش ۲: جمع‌آوری داده‌های مربوط به قوانین پراپ ---
     double daily_buffer = 0, daily_used_pct = 0, overall_buffer = 0, needed_for_target = 0;
     double overall_used_pct = 0, profit_target_progress_pct = 0;
     color daily_color = InpTextColor;
-
     if(g_prop_rules_active)
     {
         // بررسی روز جدید
@@ -172,7 +204,8 @@ void UpdateDisplayData()
         long last_day_index = (long)(g_current_trading_day / 86400);
         if(current_day_index > last_day_index)
         {
-            double end_of_day_base = (InpDailyDDBase == DD_FROM_BALANCE) ? AccountInfoDouble(ACCOUNT_BALANCE) : AccountInfoDouble(ACCOUNT_EQUITY);
+            double end_of_day_base = (InpDailyDDBase == DD_FROM_BALANCE) ?
+            AccountInfoDouble(ACCOUNT_BALANCE) : AccountInfoDouble(ACCOUNT_EQUITY);
             double previous_day_profit = end_of_day_base - g_start_of_day_base;
 
             if(InpEnableConsistencyRule)
@@ -204,20 +237,20 @@ void UpdateDisplayData()
         double daily_dd_limit_level = g_start_of_day_base * (1 - InpMaxDailyDrawdownPercent / 100.0);
         daily_buffer = current_equity - daily_dd_limit_level;
         double daily_dd_total_allowed = g_start_of_day_base - daily_dd_limit_level;
-        daily_used_pct = (daily_dd_total_allowed > 0.001) ? (1.0 - daily_buffer / daily_dd_total_allowed) * 100.0 : 0;
+        daily_used_pct = (daily_dd_total_allowed > 0.001) ?
+        (1.0 - daily_buffer / daily_dd_total_allowed) * 100.0 : 0;
         
         if(daily_buffer < 0) daily_color = InpDangerColor;
         else if(daily_used_pct > 85) daily_color = InpDangerColor;
         else if(daily_used_pct > 60) daily_color = InpWarningColor;
         else daily_color = InpSafeColor;
-
         double overall_dd_base = (InpOverallDDType == DD_TYPE_STATIC) ? g_initial_balance : g_peak_equity;
         double overall_dd_limit_level = overall_dd_base * (1 - InpMaxOverallDrawdownPercent / 100.0);
         overall_buffer = current_equity - overall_dd_limit_level;
         double overall_dd_total_allowed = overall_dd_base - overall_dd_limit_level;
-        overall_used_pct = (overall_dd_total_allowed > 0.001) ? (1.0 - overall_buffer / overall_dd_total_allowed) * 100.0 : 0;
+        overall_used_pct = (overall_dd_total_allowed > 0.001) ?
+        (1.0 - overall_buffer / overall_dd_total_allowed) * 100.0 : 0;
         if(overall_buffer < 0) overall_used_pct = 100;
-
         double profit_target_level = g_initial_balance * (1 + InpProfitTargetPercent / 100.0);
         needed_for_target = profit_target_level - AccountInfoDouble(ACCOUNT_BALANCE);
         if(needed_for_target > 0)
@@ -241,12 +274,15 @@ void UpdateDisplayData()
         status_msg = "Waiting for Candle Close...";
     }
     
+    // ترکیب پیام وضعیت با نسبت R/R
+    string final_display_status = rr_string + " | " + status_msg;
+    
     // --- بخش ۳: ارسال تمام داده‌ها به پنل نمایشی ---
     g_DisplayCanvas.Update(entry_price, sl_price, tp_price, lot_size, risk_in_money,
                            daily_buffer, daily_used_pct, daily_color,
                            overall_buffer, overall_used_pct,
                            needed_for_target, profit_target_progress_pct,
-                           spread, status_msg,
+                           spread, final_display_status,
                            live_stats);
 }
 
