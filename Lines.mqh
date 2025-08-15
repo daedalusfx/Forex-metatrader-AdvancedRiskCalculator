@@ -1,11 +1,11 @@
 //+------------------------------------------------------------------+
 //|                                                     Lines.mqh |
-//|         V2.1 - توابع مدیریت خطوط با لیبل‌های بهبودیافته        |
+//|        V3.0 - بازنویسی کامل برای پشتیبانی از حالت‌های دستی و خودکار |
 //+------------------------------------------------------------------+
 #ifndef LINES_MQH
 #define LINES_MQH
 
-//--- ایجاد خط افقی
+//--- توابع قدیمی (بدون تغییر) ---
 void CreateLine(string name, string text, double price, color clr, bool selectable = true)
 {
     if(ObjectFind(0, name) < 0)
@@ -19,7 +19,6 @@ void CreateLine(string name, string text, double price, color clr, bool selectab
     ObjectMove(0, name, 0, 0, price);
 }
 
-//--- ایجاد لیبل‌های استایل‌دار
 void CreateStyledLabel(string name, string text, datetime time, double price, color bg_color, color text_color)
 {
     string label_name = name + "_label";
@@ -41,18 +40,18 @@ void CreateStyledLabel(string name, string text, datetime time, double price, co
     ObjectMove(0, label_name, 0, time, price);
 }
 
-//--- حذف خطوط
 void DeleteTradeLines()
 {
    ObjectDelete(0, LINE_ENTRY_PRICE);
    ObjectDelete(0, LINE_STOP_LOSS);
    ObjectDelete(0, LINE_TAKE_PROFIT);
+   ObjectDelete(0, LINE_PENDING_ENTRY);
    ObjectDelete(0, LINE_ENTRY_PRICE + "_label");
    ObjectDelete(0, LINE_STOP_LOSS + "_label");
    ObjectDelete(0, LINE_TAKE_PROFIT + "_label");
+   ObjectDelete(0, LINE_PENDING_ENTRY + "_label");
 }
 
-//--- دریافت قیمت خط
 double GetLinePrice(string line_name)
 {
    if(ObjectFind(0, line_name) != -1)
@@ -60,111 +59,147 @@ double GetLinePrice(string line_name)
    return 0;
 }
 
-//--- ایجاد مجموعه اولیه خطوط
-// In Lines.mqh -> Replace the entire CreateTradeLines function with this
-// In Lines.mqh -> Replace the entire CreateTradeLines function with this new version
-void CreateTradeLines()
+// --- (جدید) تابع اصلی برای به‌روزرسانی هماهنگ خطوط در حالت خودکار ---
+void UpdateDynamicLines()
 {
-   DeleteTradeLines();
-   double ask = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
-   double bid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
-   double pip_value = GetPipValue();
-   ETradeState state = ExtDialog.GetCurrentState(); // Get the current state
-   bool is_stairway = (state == STATE_PREP_STAIRWAY_BUY || state == STATE_PREP_STAIRWAY_SELL);
-   bool is_pending = CurrentStateIsPending();
-   bool isBuy = (state == STATE_PREP_MARKET_BUY || state == STATE_PREP_PENDING_BUY || state == STATE_PREP_STAIRWAY_BUY);
+    // این تابع فقط در حالت خودکار و استراتژی پلکانی کار می‌کند
+    if(ExtDialog.GetCurrentState() < STATE_PREP_STAIRWAY_BUY || InpTPMode != TP_RR_RATIO) return;
 
-   double initial_sl_pips = 20.0;
-   double initial_distance_pips = 50.0; // A safe distance of 50 pips
-   double sl_distance_points = initial_sl_pips * pip_value;
-   double safe_distance_points = initial_distance_pips * pip_value;
+    // ۱. قیمت‌های اصلی را بخوان (سطح شکست و استاپ)
+    double breakout_price = GetLinePrice(LINE_ENTRY_PRICE);
+    double sl_price = GetLinePrice(LINE_STOP_LOSS);
+    if(breakout_price <= 0 || sl_price <= 0) return;
 
-   // --- (FIX) The main logic change is here ---
-   // If the mode is Pending OR Stairway, place the entry line far from the current price
-   if(is_pending || is_stairway)
-   {
-      g_entry_price = isBuy ? ask + safe_distance_points : bid - safe_distance_points;
-   }
-   // Otherwise (it's a Market order), place it at the current price
-   else
-   {
-      g_entry_price = isBuy ? ask : bid;
-   }
-   // --- End of main logic change ---
-   
-   g_sl_price = isBuy ?
-                g_entry_price - sl_distance_points : g_entry_price + sl_distance_points;
-   double rr_sl_distance = MathAbs(g_entry_price - g_sl_price);
-   g_tp_price = isBuy ?
-                g_entry_price + (rr_sl_distance * InpTP_RR_Value) : g_entry_price - (rr_sl_distance * InpTP_RR_Value);
+    bool is_buy = (sl_price < breakout_price);
+    double pip_value = GetPipValue();
 
-   // Make the entry line selectable ONLY in Stairway and normal Pending mode
-   bool is_entry_selectable = (is_stairway || (is_pending && !InpAutoEntryPending));
-   CreateLine(LINE_ENTRY_PRICE, "", g_entry_price, InpEntryLineColor, is_entry_selectable);
-   CreateLine(LINE_STOP_LOSS, "", g_sl_price, InpStopLineColor, true); // SL is always selectable
-   CreateLine(LINE_TAKE_PROFIT, "", g_tp_price, InpProfitLineColor, InpTPMode == TP_MANUAL); // TP only in manual mode
+    // ۲. نقطه ورود پولبک را بر اساس قانون ثابت محاسبه کن
+    double pending_entry_price = is_buy ?
+        breakout_price - (15 * pip_value) : breakout_price + (15 * pip_value);
+    ObjectMove(0, LINE_PENDING_ENTRY, 0, 0, pending_entry_price);
+
+    // ۳. حد سود را بر اساس نقطه ورود جدید و R:R محاسبه کن
+    double risk_distance = MathAbs(pending_entry_price - sl_price);
+    double tp_price = is_buy ?
+        pending_entry_price + (risk_distance * InpTP_RR_Value) : pending_entry_price - (risk_distance * InpTP_RR_Value);
+    ObjectMove(0, LINE_TAKE_PROFIT, 0, 0, tp_price);
+    
+    // در نهایت، تمام لیبل‌ها را آپدیت کن
+    UpdateAllLabels();
 }
 
+
+// --- (بازنویسی شده) تابع هوشمند برای ایجاد اولیه خطوط ---
+void CreateTradeLines()
+{
+    DeleteTradeLines();
+    double ask = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+    double bid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+    double pip_value = GetPipValue();
+    ETradeState state = ExtDialog.GetCurrentState();
+    bool is_stairway = (state == STATE_PREP_STAIRWAY_BUY || state == STATE_PREP_STAIRWAY_SELL);
+    bool is_buy = (state == STATE_PREP_MARKET_BUY || state == STATE_PREP_PENDING_BUY || state == STATE_PREP_STAIRWAY_BUY);
+
+    // --- قیمت‌های پیش‌فرض ---
+    double initial_sl_pips = 20.0;
+    double initial_distance_pips = 50.0;
+    
+    // سطح شکست (Breakout Level)
+    double breakout_price = is_buy ? ask + (initial_distance_pips * pip_value) : bid - (initial_distance_pips * pip_value);
+    // حد ضرر (Stop Loss)
+    double sl_price = is_buy ? breakout_price - (initial_sl_pips * pip_value) : breakout_price + (initial_sl_pips * pip_value);
+
+    // --- منطق اصلی بر اساس حالت دستی یا خودکار ---
+    if(is_stairway && InpTPMode == TP_RR_RATIO) // حالت خودکار (ورود هوشمند)
+    {
+        // کاربر فقط SL و سطح شکست را می‌تواند جابجا کند
+        CreateLine(LINE_ENTRY_PRICE, "", breakout_price, InpWarningColor, true); // سطح شکست
+        CreateLine(LINE_STOP_LOSS, "", sl_price, InpStopLineColor, true);       // حد ضرر
+
+        // نقطه ورود و TP بر اساس دو خط بالا محاسبه و "قفل" می‌شوند
+        double pending_entry_price = is_buy ? breakout_price - (15 * pip_value) : breakout_price + (15 * pip_value);
+        double risk_distance = MathAbs(pending_entry_price - sl_price);
+        double tp_price = is_buy ? pending_entry_price + (risk_distance * InpTP_RR_Value) : pending_entry_price - (risk_distance * InpTP_RR_Value);
+        
+        CreateLine(LINE_PENDING_ENTRY, "", pending_entry_price, InpEntryLineColor, false); // نقطه ورود (غیرقابل انتخاب)
+        CreateLine(LINE_TAKE_PROFIT, "", tp_price, InpProfitLineColor, false);        // حد سود (غیرقابل انتخاب)
+    }
+    else // حالت دستی (برای Market, Pending معمولی و Stairway دستی)
+    {
+        // تمام خطوط توسط کاربر قابل جابجایی هستند
+        bool is_pending = CurrentStateIsPending();
+        bool is_entry_selectable = (is_pending || is_stairway);
+
+        double entry_price = is_pending || is_stairway ? breakout_price : (is_buy ? ask : bid);
+        if(is_stairway) // اگر پلکانی دستی بود، ۴ خط ایجاد کن
+        {
+             CreateLine(LINE_ENTRY_PRICE, "", entry_price, InpWarningColor, true); // سطح شکست
+             double pending_entry_price = is_buy ? entry_price - (15 * pip_value) : entry_price + (15 * pip_value);
+             CreateLine(LINE_PENDING_ENTRY, "", pending_entry_price, InpEntryLineColor, true); // ورود
+        }
+        else // برای حالت‌های دیگر
+        {
+             CreateLine(LINE_ENTRY_PRICE, "", entry_price, InpEntryLineColor, is_entry_selectable);
+        }
+
+        CreateLine(LINE_STOP_LOSS, "", sl_price, InpStopLineColor, true);
+        double tp_price = is_buy ? entry_price + (MathAbs(entry_price-sl_price) * InpTP_RR_Value) : entry_price - (MathAbs(entry_price-sl_price) * InpTP_RR_Value);
+        CreateLine(LINE_TAKE_PROFIT, "", tp_price, InpProfitLineColor, true);
+    }
+}
+
+
+// --- (اصلاح شده) تابع به‌روزرسانی لیبل‌ها ---
+// این تابع باید منطق جدید را منعکس کند
 void UpdateLineInfoLabels()
 {
    if (ExtDialog.GetCurrentState() == STATE_IDLE) return;
    
-   double entry_price = GetLinePrice(LINE_ENTRY_PRICE);
+   double breakout_price = GetLinePrice(LINE_ENTRY_PRICE);
    double sl_price = GetLinePrice(LINE_STOP_LOSS);
    double tp_price = GetLinePrice(LINE_TAKE_PROFIT);
-   if(entry_price == 0) return;
+   double pending_entry_price = GetLinePrice(LINE_PENDING_ENTRY);
+   
+   if(breakout_price == 0) return;
    
    double lot_size = 0, risk_in_money = 0;
-   if(sl_price > 0)
-     CalculateLotSize(entry_price, sl_price, lot_size, risk_in_money);
-     
-   datetime time_pos = TimeCurrent() + (PeriodSeconds() * 15); 
-   double pip_value = GetPipValue();
    ETradeState state = ExtDialog.GetCurrentState();
    bool is_stairway = (state == STATE_PREP_STAIRWAY_BUY || state == STATE_PREP_STAIRWAY_SELL);
    
-   // --- Logic for Entry/Breakout Label ---
-   string entry_text;
-   color entry_bg_color;
-   if(is_stairway)
-   {
-      entry_text = StringFormat("BREAKOUT | %.5f", entry_price);
-      entry_bg_color = InpWarningColor; // Orange for armed state
-   }
-   else
-   {
-      entry_text = StringFormat("ENTRY | %.5f", entry_price);
-      entry_bg_color = InpBuyButtonColor; // A neutral or standard color
-   }
-   CreateStyledLabel(LINE_ENTRY_PRICE, entry_text, time_pos, entry_price, entry_bg_color, C'255,255,255');
+   // مبنای محاسبه ریسک همیشه فاصله ورود پولبک تا استاپ است
+   double risk_calc_entry = is_stairway ? pending_entry_price : breakout_price;
+   if(sl_price > 0 && risk_calc_entry > 0)
+     CalculateLotSize(risk_calc_entry, sl_price, lot_size, risk_in_money);
 
-   // --- Logic for SL and TP Labels (to match prototype) ---
+   datetime time_pos = TimeCurrent() + (PeriodSeconds() * 15);
+   double pip_value = GetPipValue();
+
+   // لیبل سطح شکست
+   string breakout_text = StringFormat("BREAKOUT | %.5f", breakout_price);
+   CreateStyledLabel(LINE_ENTRY_PRICE, breakout_text, time_pos, breakout_price, InpWarningColor, C'255,255,255');
+      
+   // لیبل خط ورود پولبک
+   string pending_text = StringFormat("PENDING ENTRY | %.5f", pending_entry_price);
+   CreateStyledLabel(LINE_PENDING_ENTRY, pending_text, time_pos, pending_entry_price, InpBuyButtonColor, C'255,255,255');
+
+   // لیبل‌های SL و TP
    if(sl_price > 0)
    {
-      double sl_pips = (pip_value > 0) ? MathAbs(sl_price - entry_price) / pip_value : 0;
+      double sl_pips = (pip_value > 0) ? MathAbs(sl_price - risk_calc_entry) / pip_value : 0;
       string sl_text = StringFormat("STOP LOSS | Risk $%.2f", risk_in_money);
       CreateStyledLabel(LINE_STOP_LOSS, sl_text, time_pos, sl_price, InpStopLineColor, C'255,255,255');
 
       if(tp_price > 0)
       {
-         double tp_pips = (pip_value > 0) ? MathAbs(tp_price - entry_price) / pip_value : 0;
-         double rr_ratio = (sl_pips > 0) ? tp_pips / sl_pips : 0;
-         string tp_text = StringFormat("TAKE PROFIT | R:R %.1f", rr_ratio);
+         double tp_pips = (pip_value > 0) ? MathAbs(tp_price - risk_calc_entry) / pip_value : 0;
+         double rr_ratio = (sl_pips > 0.1) ? tp_pips / sl_pips : 0;
+         string tp_text = StringFormat("TAKE PROFIT | R:R %.1f:1", rr_ratio);
          CreateStyledLabel(LINE_TAKE_PROFIT, tp_text, time_pos, tp_price, InpProfitLineColor, C'255,255,255');
       }
    }
 }
-//--- به‌روزرسانی خودکار خط TP
-void UpdateAutoTPLine()
-{
-    if(ExtDialog.GetCurrentState() == STATE_IDLE || InpTPMode != TP_RR_RATIO) return;
-    double entry_price = GetLinePrice(LINE_ENTRY_PRICE);
-    double sl_price = GetLinePrice(LINE_STOP_LOSS);
-    if(entry_price <= 0 || sl_price <= 0 || InpTP_RR_Value <= 0) return;
-    bool is_buy = (sl_price < entry_price);
-    double sl_distance = MathAbs(entry_price - sl_price);
-    double tp_price = is_buy ? entry_price + (sl_distance * InpTP_RR_Value) : entry_price - (sl_distance * InpTP_RR_Value);
-    if(tp_price > 0) ObjectMove(0, LINE_TAKE_PROFIT, 0, 0, tp_price);
-}
+
+// این تابع در کد اصلی برنامه، در بخش مدیریت رویداد Drag، جایگزین UpdateAutoTPLine خواهد شد
+#define UpdateAutoTPLine UpdateDynamicLines
 
 #endif // LINES_MQH

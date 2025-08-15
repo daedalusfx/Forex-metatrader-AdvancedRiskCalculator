@@ -116,7 +116,7 @@ void OnDeinit(const int reason)
 void OnTick()
 {
    ETradeState current_state = ExtDialog.GetCurrentState();
-   if(current_state >= STATE_PREP_STAIRWAY_BUY && current_state <= STATE_STAIRWAY_WAITING_FOR_CLOSE)
+   if(current_state >= STATE_PREP_STAIRWAY_BUY && current_state <= STATE_STAIRWAY_WAITING_FOR_CONFIRMATION)
    {
       ManageStairwayExecution();
    }
@@ -251,53 +251,53 @@ void UpdateDisplayData()
 }
 
 //+------------------------------------------------------------------+
-//|    محاسبه آمار لحظه‌ای تمام معاملات باز                          |
+//|    محاسبه آمار لحظه‌ای تمام معاملات باز (نسخه نهایی و اصلاح شده)   |
 //+------------------------------------------------------------------+
-// In AdvancedRiskCalculator.mq5 -> Replace the entire CalculateLiveTradeStats function
 
-//+------------------------------------------------------------------+
-//|    (جدید) محاسبه آمار لحظه‌ای تمام معاملات باز (با محاسبه پاداش) |
-//+------------------------------------------------------------------+
 LiveTradeStats CalculateLiveTradeStats()
 {
     LiveTradeStats stats;
     stats.total_pl = 0;
     stats.total_risk = 0;
-    stats.total_reward = 0; // مقداردهی اولیه فیلد جدید
+    stats.total_reward = 0;
     stats.position_count = 0;
 
     for(int i = PositionsTotal() - 1; i >= 0; i--)
     {
-        ulong ticket = PositionGetTicket(i);
-        if(PositionSelectByTicket(ticket) && PositionGetInteger(POSITION_MAGIC) == g_magic_number)
+      ulong ticket = PositionGetTicket(i);
+      if(PositionSelectByTicket(ticket))
         {
-            stats.total_pl += PositionGetDouble(POSITION_PROFIT);
-            stats.position_count++;
-
-            double open_price = PositionGetDouble(POSITION_PRICE_OPEN);
-            double sl_price = PositionGetDouble(POSITION_SL);
-            double tp_price = PositionGetDouble(POSITION_TP); // دریافت حد سود
-            double volume = PositionGetDouble(POSITION_VOLUME);
-            string symbol = PositionGetString(POSITION_SYMBOL);
-            ENUM_ORDER_TYPE order_type = (ENUM_ORDER_TYPE)PositionGetInteger(POSITION_TYPE);
-
-            // محاسبه ریسک بالقوه (فاصله تا SL)
-            if(sl_price > 0)
+            // سپس بررسی می‌کنیم که آیا متعلق به این اکسپرت است یا خیر
+            if(PositionGetInteger(POSITION_MAGIC) == g_magic_number)
             {
-                double potential_loss = 0;
-                if(OrderCalcProfit(order_type, symbol, volume, open_price, sl_price, potential_loss))
+                stats.total_pl += PositionGetDouble(POSITION_PROFIT);
+                stats.position_count++;
+
+                double open_price = PositionGetDouble(POSITION_PRICE_OPEN);
+                double sl_price = PositionGetDouble(POSITION_SL);
+                double tp_price = PositionGetDouble(POSITION_TP);
+                double volume = PositionGetDouble(POSITION_VOLUME);
+                string symbol = PositionGetString(POSITION_SYMBOL);
+                ENUM_ORDER_TYPE order_type = (ENUM_ORDER_TYPE)PositionGetInteger(POSITION_TYPE);
+
+                // محاسبه ریسک بالقوه (فاصله تا SL)
+                if(sl_price > 0)
                 {
-                    stats.total_risk += MathAbs(potential_loss);
+                    double potential_loss = 0;
+                    if(OrderCalcProfit(order_type, symbol, volume, open_price, sl_price, potential_loss))
+                    {
+                        stats.total_risk += MathAbs(potential_loss);
+                    }
                 }
-            }
-            
-            // +++ (جدید) محاسبه پاداش بالقوه (فاصله تا TP) +++
-            if(tp_price > 0)
-            {
-                double potential_profit = 0;
-                if(OrderCalcProfit(order_type, symbol, volume, open_price, tp_price, potential_profit))
+                
+                // محاسبه پاداش بالقوه (فاصله تا TP)
+                if(tp_price > 0)
                 {
-                    stats.total_reward += MathAbs(potential_profit);
+                    double potential_profit = 0;
+                    if(OrderCalcProfit(order_type, symbol, volume, open_price, tp_price, potential_profit))
+                    {
+                        stats.total_reward += MathAbs(potential_profit);
+                    }
                 }
             }
         }

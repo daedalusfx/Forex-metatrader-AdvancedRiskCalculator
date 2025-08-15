@@ -233,15 +233,24 @@ bool CPanelDialog::CreateStairwayPanel(int x, int y)
 void CPanelDialog::HandleDragEvent(const string &dragged_object)
 {
     if(m_current_state == STATE_IDLE) return;
-    
-    if(InpAutoEntryPending && (m_current_state == STATE_PREP_PENDING_BUY || m_current_state == STATE_PREP_PENDING_SELL) && dragged_object == LINE_STOP_LOSS)
+    ETradeState state = GetCurrentState();
+    bool is_stairway = (state == STATE_PREP_STAIRWAY_BUY || state == STATE_PREP_STAIRWAY_SELL);
+
+    // If we are in automatic R:R mode
+    if(InpTPMode == TP_RR_RATIO)
     {
-        // ...
+        // For stairway strategy, update if SL or Breakout lines are moved
+        if(is_stairway && (dragged_object == LINE_ENTRY_PRICE || dragged_object == LINE_STOP_LOSS))
+        {
+            UpdateDynamicLines(); // (Corrected)
+        }
+        // For regular pending orders
+        else if(!is_stairway && !InpAutoEntryPending && (dragged_object == LINE_ENTRY_PRICE || dragged_object == LINE_STOP_LOSS))
+        {
+            UpdateDynamicLines(); // (Corrected)
+        }
     }
-    else if(!InpAutoEntryPending && InpTPMode == TP_RR_RATIO && (dragged_object == LINE_ENTRY_PRICE || dragged_object == LINE_STOP_LOSS))
-    {
-        UpdateAutoTPLine();
-    }
+
     UpdateAllLabels();
 }
 

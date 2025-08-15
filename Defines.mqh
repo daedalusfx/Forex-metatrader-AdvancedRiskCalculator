@@ -16,8 +16,8 @@ enum ETradeState {
   // --- حالت‌های جدید برای ورود پلکانی ---
   STATE_PREP_STAIRWAY_BUY,
   STATE_PREP_STAIRWAY_SELL,
-  STATE_STAIRWAY_WAITING_FOR_CLOSE // حالتی که پله اول وارد شده و منتظر کلوز کندل هستیم
-
+  STATE_STAIRWAY_WAITING_FOR_CONFIRMATION, // (جدید) حالتی که منتظر فعال شدن پولبک یا کلوز کندل هستیم
+  STATE_STAIRWAY_WAITING_FOR_CLOSE // این حالت را برای سازگاری نگه می‌داریم ولی از حالت جدید استفاده می‌کنیم
 };
 enum ENUM_Risk_Mode { RISK_PERCENT, RISK_MONEY };
 
@@ -81,6 +81,7 @@ input int   InpLineWidth         = 1;
 #define LINE_ENTRY_PRICE         "RiskCalc_EntryLine"
 #define LINE_STOP_LOSS           "RiskCalc_StopLossLine"
 #define LINE_TAKE_PROFIT         "RiskCalc_TakeProfitLine"
+#define LINE_PENDING_ENTRY       "RiskCalc_PendingEntryLine"
 
 //--- Global Variables
 CTrade          trade;
