@@ -13,6 +13,9 @@
 #include <Controls\Label.mqh>
 #include <Controls\Panel.mqh>
 #include <Canvas\Canvas.mqh> // <-- (مهم) اضافه شد برای CCanvas
+#include <Trade\AccountInfo.mqh> // برای دسترسی به اطلاعات حساب
+#include <Trade\PositionInfo.mqh> // برای دسترسی به اطلاعات پوزیشن
+#include <Trade\OrderInfo.mqh> // برای دسترسی به اطلاعات اردر
 
 #include "Defines.mqh"
 
@@ -71,6 +74,7 @@ int OnInit()
     Test_IsTradeRequestSafe();
     Test_InitializeMagicNumber();
     Test_StateManager();
+    Test_Stairway_Setup();
 
     // چاپ گزارش نهایی
     PrintTestSummary();
@@ -216,6 +220,30 @@ void Test_StateManager()
     AssertEquals(saved_equity, g_peak_equity, "Test 3 (Data Integrity) - Peak equity should match");
 }
 
+
+void Test_Stairway_Setup()
+{
+    Print("\n--- Testing Function: Stairway Setup ---");
+    
+    // Arrange: همه چیز را به حالت اولیه برگردانید
+    ResetToIdleState();
+    ExtDialog.SetCurrentState(STATE_IDLE);
+
+    // Act: تابع آماده‌سازی استراتژی پلکانی را فراخوانی کنید (مثل کلیک روی دکمه)
+    SetupStairwayTrade(STATE_PREP_STAIRWAY_BUY);
+
+    // Assert: نتایج را بررسی کنید
+    ETradeState current_state = ExtDialog.GetCurrentState();
+    bool entry_line_exists = (ObjectFind(0, LINE_ENTRY_PRICE) != -1);
+    bool pending_line_exists = (ObjectFind(0, LINE_PENDING_ENTRY) != -1);
+
+    AssertEquals(STATE_PREP_STAIRWAY_BUY, (long)current_state, "Test 1.1 (Setup) - State should be PREP_STAIRWAY_BUY");
+    AssertTrue(entry_line_exists, "Test 1.2 (Setup) - Breakout entry line should be created");
+    AssertTrue(pending_line_exists, "Test 1.3 (Setup) - Manual pending entry line should be created");
+
+    // پاکسازی برای تست بعدی
+    ResetToIdleState();
+}
 
 //+------------------------------------------------------------------+
 //| توابع خالی برای جلوگیری از خطای کامپایل                          |
