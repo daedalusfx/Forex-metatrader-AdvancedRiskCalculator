@@ -1,124 +1,192 @@
 //+------------------------------------------------------------------+
 //|                                           StairwayExecution.mqh |
-//|        منطق اجرای معاملات پلکانی با استاپ لاس مخفی             |
+//|        V3.0 - بازنویسی کامل با منطق سه سناریویی هوشمند           |
 //+------------------------------------------------------------------+
 #ifndef STAIRWAYEXECUTION_MQH
 #define STAIRWAYEXECUTION_MQH
 
 #include "SharedLogic.mqh"
 
-// متغیرهای وضعیت داخلی برای این ماژول
-static ulong    g_stairway_step1_ticket = 0;
-static datetime g_stairway_breakout_candle_time = 0;
-static double   g_stairway_lot_step2 = 0;
+// --- متغیرهای سراسری برای مدیریت وضعیت استراتژی پلکانی ---
+static datetime g_stairway_breakout_candle_time = 0; // زمان کندلی که شکست در آن رخ داده
+static ulong    g_stairway_step1_ticket = 0;         // تیکت سفارش پندینگ پله اول
+static double   g_stairway_total_lot = 0;            // حجم لات کل محاسبه شده
 
-// تابع آماده‌سازی (فراخوانی با کلیک روی دکمه)
-// In StairwayExecution.mqh -> Replace the entire SetupStairwayTrade function with this
+// --- (بازنویسی شده) تابع آماده‌سازی ---
 void SetupStairwayTrade(ETradeState newState)
 {
     ExtDialog.SetCurrentState(newState);
-    CreateTradeLines(); // This function now creates all necessary lines
-    UpdateAllLabels();  // Update their labels immediately
+    CreateTradeLines();
+    UpdateAllLabels();
     ChartRedraw();
-    Alert("Stairway Entry Armed. Drag the main line to the desired breakout price.");
+    Alert("Stairway Entry Armed. Drag lines to desired levels. EA is monitoring for a breakout...");
 }
 
 
-// In StairwayExecution.mqh -> Replace the entire ManageStairwayExecution function with this FINAL ROBUST version
+
+bool PlaceStairwayStep1_Pending()
+{
+    double breakout_price = GetLinePrice(LINE_ENTRY_PRICE);
+    double pending_entry_price = GetLinePrice(LINE_PENDING_ENTRY);
+    double sl_price = GetLinePrice(LINE_STOP_LOSS);
+    double tp_price = GetLinePrice(LINE_TAKE_PROFIT);
+    double risk_money = 0;
+
+    if (!CalculateLotSize(pending_entry_price, sl_price, g_stairway_total_lot, risk_money))
+    {
+        Alert("Could not calculate lot size. Aborting stairway setup.");
+        return false;
+    }
+
+    double lot_step1 = NormalizeDouble(g_stairway_total_lot * (InpStairwayInitialPercent / 100.0), 2);
+    if(lot_step1 < SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN))
+    {
+        Alert("Step 1 lot size is too small. Aborting.");
+        return false;
+    }
+    
+    bool is_buy = (ExtDialog.GetCurrentState() == STATE_PREP_STAIRWAY_BUY);
+    ENUM_ORDER_TYPE order_type = is_buy ? ORDER_TYPE_BUY_LIMIT : ORDER_TYPE_SELL_LIMIT;
+
+    double current_price = is_buy ? SymbolInfoDouble(_Symbol, SYMBOL_ASK) : SymbolInfoDouble(_Symbol, SYMBOL_BID);
+    if((is_buy && pending_entry_price >= current_price) || (!is_buy && pending_entry_price <= current_price))
+    {
+         Alert("Pending entry price is not valid for a limit order relative to current price. Please adjust lines.");
+         return false;
+    }
+
+    MqlTradeRequest request;
+    MqlTradeResult result;
+    ZeroMemory(request); // (Corrected) Use ZeroMemory to initialize
+    ZeroMemory(result);
+
+    request.action = TRADE_ACTION_PENDING;
+    request.symbol = _Symbol;
+    request.volume = lot_step1;
+    request.price = pending_entry_price;
+    request.sl = sl_price;
+    request.tp = tp_price;
+    request.type = order_type;
+    request.magic = g_magic_number;
+    request.comment = "Stairway_Step1_Pending";
+
+    if(OrderSend(request, result))
+    {
+        g_stairway_step1_ticket = result.order;
+        return true;
+    }
+    
+    Alert("Failed to place Stairway Step 1 pending order: ", GetLastError());
+    return false;
+}
+
+
 void ManageStairwayExecution()
 {
     ETradeState state = ExtDialog.GetCurrentState();
-    // --- 1. Arming and First Entry Logic (No Changes Here) ---
+
+    // --- Section 1: Monitor for breakout and place the initial pending order ---
+    // (Corrected) Typo fixed from STAIRway to STAIRWAY
     if (state == STATE_PREP_STAIRWAY_BUY || state == STATE_PREP_STAIRWAY_SELL)
     {
-        double level_price = GetLinePrice(LINE_ENTRY_PRICE);
-        if (level_price <= 0) return;
-        double sl_price = GetLinePrice(LINE_STOP_LOSS);
-        if (sl_price <= 0) return;
-
-        double current_price_ask = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
-        double current_price_bid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
-        bool is_breakout = false;
-
-        if (state == STATE_PREP_STAIRWAY_BUY && current_price_ask > level_price && iLow(_Symbol, 0, 1) < level_price) is_breakout = true;
-        else if (state == STATE_PREP_STAIRWAY_SELL && current_price_bid < level_price && iHigh(_Symbol, 0, 1) > level_price) is_breakout = true;
+        double breakout_price = GetLinePrice(LINE_ENTRY_PRICE);
+        if (breakout_price <= 0) return;
+        
+        // (Corrected) Typo fixed from STAIRway to STAIRWAY
+        double current_price = (state == STATE_PREP_STAIRWAY_BUY) ? SymbolInfoDouble(_Symbol, SYMBOL_ASK) : SymbolInfoDouble(_Symbol, SYMBOL_BID);
+        bool is_breakout = (state == STATE_PREP_STAIRWAY_BUY && current_price > breakout_price) ||
+                           (state == STATE_PREP_STAIRWAY_SELL && current_price < breakout_price);
 
         if (is_breakout)
         {
-            double total_lot = 0, risk_money = 0;
-            if (!CalculateLotSize(level_price, sl_price, total_lot, risk_money)) { ResetToIdleState(); return; }
-            double lot_step1 = NormalizeDouble(total_lot * (InpStairwayInitialPercent / 100.0), 2);
-            g_stairway_lot_step2 = NormalizeDouble(total_lot - lot_step1, 2);
-            if (lot_step1 <= 0) { ResetToIdleState(); return; }
-
-            ENUM_ORDER_TYPE order_type = (state == STATE_PREP_STAIRWAY_BUY) ? ORDER_TYPE_BUY : ORDER_TYPE_SELL;
-            double entry_price_live = (order_type == ORDER_TYPE_BUY) ? current_price_ask : current_price_bid;
-
-            if (trade.PositionOpen(_Symbol, order_type, lot_step1, entry_price_live, 0, 0, "Stairway Step 1"))
+            if(PlaceStairwayStep1_Pending())
             {
-                g_stairway_step1_ticket = trade.ResultDeal();
                 g_stairway_breakout_candle_time = iTime(_Symbol, 0, 0);
-                ExtDialog.SetCurrentState(STATE_STAIRWAY_WAITING_FOR_CLOSE);
-                Alert("Stairway Step 1 executed. Waiting for candle close.");
+                ExtDialog.SetCurrentState(STATE_STAIRWAY_WAITING_FOR_CONFIRMATION);
+                Alert("Breakout Detected! Step 1 pending order placed. Waiting for pullback or candle close confirmation...");
             }
-            else { Alert("Stairway Step 1 failed: ", trade.ResultComment()); ResetToIdleState(); }
+            else
+            {
+                ResetToIdleState();
+            }
         }
     }
-    // --- 2. Second Entry and SL/TP Modification Logic (HEAVILY REVISED) ---
-    else if (state == STATE_STAIRWAY_WAITING_FOR_CLOSE)
+    // --- Section 2: Wait for pending order activation or candle close (the core logic) ---
+    else if (state == STATE_STAIRWAY_WAITING_FOR_CONFIRMATION)
     {
         if (iTime(_Symbol, 0, 0) > g_stairway_breakout_candle_time)
         {
-            bool can_proceed_to_modify = false;
-            if (g_stairway_lot_step2 > 0)
-            {
-                if(PositionsTotal() > 0)
-                {
-                   long pos_type_long = PositionGetInteger(POSITION_TYPE);
-                   ENUM_ORDER_TYPE order_type = (pos_type_long == POSITION_TYPE_BUY) ? ORDER_TYPE_BUY : ORDER_TYPE_SELL;
-                   double price = (order_type == ORDER_TYPE_BUY) ? SymbolInfoDouble(_Symbol, SYMBOL_ASK) : SymbolInfoDouble(_Symbol, SYMBOL_BID);
-                   if(trade.PositionOpen(_Symbol, order_type, g_stairway_lot_step2, price, 0, 0, "Stairway Step 2"))
-                   {
-                      Alert("Stairway Step 2 executed successfully.");
-                      can_proceed_to_modify = true;
-                   }
-                   else { Alert("Stairway Step 2 failed: ", trade.ResultComment()); }
-                }
-            } else { can_proceed_to_modify = true; }
+            bool is_step1_triggered = OrderSelect(g_stairway_step1_ticket) ? false : true;
+            
+            double breakout_candle_close = iClose(_Symbol, 0, 1);
+            double breakout_price = GetLinePrice(LINE_ENTRY_PRICE);
+            bool is_buy_setup = PositionSelect(_Symbol) ? (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY) : (GetLinePrice(LINE_STOP_LOSS) < breakout_price);
 
-            if(can_proceed_to_modify)
-            {
-                double sl_price = GetLinePrice(LINE_STOP_LOSS);
-                double tp_price = GetLinePrice(LINE_TAKE_PROFIT);
-                if (tp_price <= 0) tp_price = 0.0;
+            bool is_confirmed = (is_buy_setup && breakout_candle_close > breakout_price) ||
+                                (!is_buy_setup && breakout_candle_close < breakout_price);
 
-                if (sl_price > 0)
+            if(is_confirmed)
+            {
+                // Scenarios from here do not contain the typo
+                if(is_step1_triggered)
                 {
-                    bool all_modified_successfully = true;
-                    for(int i = PositionsTotal() - 1; i >= 0; i--)
+                    Alert("Ideal Entry! Step 1 triggered and candle confirmed. Executing Step 2.");
+                    double lot_step2 = NormalizeDouble(g_stairway_total_lot - PositionGetDouble(POSITION_VOLUME), 2);
+                    if(lot_step2 >= SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN))
                     {
-                        ulong ticket = PositionGetTicket(i);
-                   // (Recommended) Using the CTrade object for modification
-if(!trade.PositionModify(ticket, sl_price, tp_price))
-{
-    all_modified_successfully = false;
-    Alert("Failed to modify SL/TP on ticket #", (string)ticket, ". Error: ", trade.ResultComment());
-}
-
-
+                       ENUM_ORDER_TYPE mkt_type = is_buy_setup ? ORDER_TYPE_BUY : ORDER_TYPE_SELL;
+                       trade.PositionOpen(_Symbol, mkt_type, lot_step2, 0, 0, 0, "Stairway_Step2_Market");
                     }
-                    if(all_modified_successfully) Alert("Real Stop Loss and Take Profit have been set for all open positions.");
+                }
+                else
+                {
+                    Alert("Corrective Scenario! Step 1 missed but candle confirmed. Replacing with a new 100% risk pending order.");
+                    trade.OrderDelete(g_stairway_step1_ticket); 
+
+                    MqlTradeRequest request;
+                    MqlTradeResult result;
+                    ZeroMemory(request);
+                    ZeroMemory(result);
+
+                    request.action = TRADE_ACTION_PENDING;
+                    request.symbol = _Symbol;
+                    request.volume = g_stairway_total_lot;
+                    request.price = GetLinePrice(LINE_PENDING_ENTRY);
+                    request.sl = GetLinePrice(LINE_STOP_LOSS);
+                    request.tp = GetLinePrice(LINE_TAKE_PROFIT);
+                    request.type = is_buy_setup ? ORDER_TYPE_BUY_LIMIT : ORDER_TYPE_SELL_LIMIT;
+                    request.magic = g_magic_number;
+                    request.comment = "Stairway_Full_Pending";
+
+                    if(!trade.OrderSend(request, result))
+                    {
+                        Alert("Failed to place the new 100% pending order. Error: ", result.comment);
+                    }
+                    else
+                    {
+                        Alert("New 100% pending order placed successfully at ", DoubleToString(request.price, _Digits));
+                    }
                 }
             }
-            // Reset state and global variables
-            g_stairway_step1_ticket = 0;
-            g_stairway_breakout_candle_time = 0;
-            g_stairway_lot_step2 = 0;
+            else 
+            {
+                if(is_step1_triggered)
+                {
+                    Alert("Failed Pullback! Step 1 triggered but candle did not confirm. Step 2 is cancelled.");
+                }
+                else
+                {
+                    Alert("Breakout failed. Cancelling pending order.");
+                    trade.OrderDelete(g_stairway_step1_ticket);
+                }
+            }
+            
             ResetToIdleState();
         }
     }
 }
-// تابع مدیریت استاپ لاس مخفی
+
+// تابع مدیریت استاپ لاس مخفی (بدون تغییر باقی می‌ماند)
 void ManageStairwayHiddenSL()
 {
     // این تابع باید چک کند آیا معامله‌ای با مجیک نامبر ما باز است که توسط منطق پلکانی باز شده
