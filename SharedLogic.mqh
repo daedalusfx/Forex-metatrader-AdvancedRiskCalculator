@@ -107,8 +107,10 @@ bool IsTradeRequestSafe(double lot_size, ENUM_ORDER_TYPE order_type, double pric
                     double existing_trade_loss = 0;
                     if(stop_loss > 0)
                     {
-                        OrderCalcProfit((ENUM_ORDER_TYPE)type, pos_symbol, volume, open_price, stop_loss, existing_trade_loss);
-                        total_potential_loss += MathAbs(existing_trade_loss);
+                        if(OrderCalcProfit((ENUM_ORDER_TYPE)type, pos_symbol, volume, open_price, stop_loss, existing_trade_loss))
+                        {
+                            total_potential_loss += MathAbs(existing_trade_loss);
+                        }
                     }
                 }
             }

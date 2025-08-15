@@ -25,7 +25,7 @@ void SetupPendingTrade(ETradeState newState)
        if(InpTPMode == TP_RR_RATIO)
        {
           ObjectSetInteger(0, LINE_TAKE_PROFIT, OBJPROP_SELECTABLE, false);
-          UpdateAutoTPLine();
+          UpdateDynamicLines();
        }
    }
 

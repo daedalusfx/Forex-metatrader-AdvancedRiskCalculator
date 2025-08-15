@@ -95,13 +95,15 @@ bool PlaceStairwayStep1_Pending()
     return false;
 }
 
+
 //+------------------------------------------------------------------+
-//| تابع اصلی مدیریت اجرای استراتژی پلکانی (نسخه نهایی و اصلاح شده)   |
+//| تابع اصلی مدیریت اجرای استراتژی پلکانی (نسخه نهایی بر اساس الگوریتم شما) |
 //+------------------------------------------------------------------+
 void ManageStairwayExecution()
 {
     ETradeState state = ExtDialog.GetCurrentState();
 
+    // فاز اول: نظارت برای شکست قیمت و ارسال پله ۱
     if (state == STATE_PREP_STAIRWAY_BUY || state == STATE_PREP_STAIRWAY_SELL)
     {
         double breakout_price = GetLinePrice(LINE_ENTRY_PRICE);
@@ -109,23 +111,25 @@ void ManageStairwayExecution()
         
         double current_price = (state == STATE_PREP_STAIRWAY_BUY) ? SymbolInfoDouble(_Symbol, SYMBOL_ASK) : SymbolInfoDouble(_Symbol, SYMBOL_BID);
         bool is_breakout = (state == STATE_PREP_STAIRWAY_BUY && current_price > breakout_price) || (state == STATE_PREP_STAIRWAY_SELL && current_price < breakout_price);
-
+        
         if (is_breakout)
         {
             if(PlaceStairwayStep1_Pending())
             {
                 g_stairway_breakout_candle_time = iTime(_Symbol, 0, 0);
                 ExtDialog.SetCurrentState(STATE_STAIRWAY_WAITING_FOR_CONFIRMATION);
-                Alert("شکست قیمت شناسایی شد! سفارش معلق پله اول ارسال شد. در انتظار تایید کندل یا پولبک...");
+                Alert("شکست قیمت شناسایی شد! سفارش معلق پله اول ارسال شد. در انتظار بسته شدن کندل برای تایید...");
             }
             else
             {
-                ResetToIdleState();
+                ResetToIdleState(); // اگر ارسال پله اول ناموفق بود، همه چیز را ریست کن
             }
         }
     }
+    // فاز دوم: بررسی کلوز کندل و ارسال پله ۲
     else if (state == STATE_STAIRWAY_WAITING_FOR_CONFIRMATION)
     {
+        // اگر کندل جدیدی باز شده باشد (یعنی کندل شکست بسته شده است)
         if (iTime(_Symbol, 0, 0) > g_stairway_breakout_candle_time)
         {
             bool is_step1_triggered = false;
@@ -134,23 +138,21 @@ void ManageStairwayExecution()
                 is_step1_triggered = true;
             }
             
-            double breakout_candle_close = iClose(_Symbol, 0, 1);
+            double breakout_candle_close = iClose(_Symbol, 0, 1); // قیمت بسته شدن کندل قبلی (کندل شکست)
             double breakout_price = GetLinePrice(LINE_ENTRY_PRICE);
             
-            bool is_buy_setup = false;
-            if(is_step1_triggered) {
-                is_buy_setup = (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY);
-            } else {
-                is_buy_setup = (GetLinePrice(LINE_STOP_LOSS) < breakout_price);
-            }
+            bool is_buy_setup = (GetLinePrice(LINE_STOP_LOSS) < breakout_price);
 
-            bool is_confirmed = (is_buy_setup && breakout_candle_close > breakout_price) || (!is_buy_setup && breakout_candle_close < breakout_price);
+            // شرط تایید: آیا کندل در جهت شکست بسته شده است؟
+            bool is_confirmed = (is_buy_setup && breakout_candle_close > breakout_price) ||
+                                (!is_buy_setup && breakout_candle_close < breakout_price);
 
             if(is_confirmed)
             {
+                // سناریوی ۱: ورود ایده‌آل (پله ۱ فعال شده و کندل هم تایید شده)
                 if(is_step1_triggered)
                 {
-                    Alert("ورود ایده‌آل! پله ۱ فعال و کندل تایید شد. در حال اجرای پله ۲.");
+                    Alert("ورود ایده‌آل! پله ۱ فعال و کندل تایید شد. در حال ارسال پله ۲ به صورت Pending...");
                     
                     double vol_step = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_STEP);
                     double current_pos_vol = PositionGetDouble(POSITION_VOLUME);
@@ -159,15 +161,41 @@ void ManageStairwayExecution()
 
                     if(lot_step2 >= SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN))
                     {
-                       ENUM_ORDER_TYPE mkt_type = is_buy_setup ? ORDER_TYPE_BUY : ORDER_TYPE_SELL;
-                       trade.PositionOpen(_Symbol, mkt_type, lot_step2, 0, 0, 0, "Stairway_Step2_Market");
+                       // --- (کد جدید) ---
+                       // به جای اجرای Market، یک سفارش Limit دیگر برای پله دوم ارسال می‌کنیم
+                       MqlTradeRequest request_step2;
+                       MqlTradeResult  result_step2;
+                       ZeroMemory(request_step2);
+                       ZeroMemory(result_step2);
+                       
+                       request_step2.action = TRADE_ACTION_PENDING;
+                       request_step2.symbol = _Symbol;
+                       request_step2.volume = lot_step2;
+                       request_step2.price = GetLinePrice(LINE_PENDING_ENTRY); // همان قیمت ورود پله اول
+                       request_step2.sl = GetLinePrice(LINE_STOP_LOSS);
+                       request_step2.tp = GetLinePrice(LINE_TAKE_PROFIT);
+                       request_step2.type = is_buy_setup ? ORDER_TYPE_BUY_LIMIT : ORDER_TYPE_SELL_LIMIT;
+                       request_step2.magic = g_magic_number;
+                       request_step2.comment = "Stairway_Step2_Pending";
+                       
+                       if(!trade.OrderSend(request_step2, result_step2))
+                       {
+                           Alert(StringFormat("ارسال سفارش معلق پله دوم با خطا مواجه شد. Comment: %s", result_step2.comment));
+                       }
+                       else
+                       {
+                           Alert("سفارش معلق پله دوم با موفقیت ارسال شد.");
+                       }
+                       // --- (پایان کد جدید) ---
                     }
                 }
+                // سناریوی ۲: اصلاحی (پله ۱ فعال نشده ولی کندل تایید شده)
                 else
                 {
                     Alert("سناریوی اصلاحی! پله ۱ فعال نشد اما کندل تایید شد. در حال جایگزینی با سفارش ۱۰۰٪.");
-                    if(trade.OrderDelete(g_stairway_step1_ticket))
+                    if(trade.OrderDelete(g_stairway_step1_ticket)) // حذف سفارش معلق پله ۱
                     {
+                        // ارسال یک سفارش جدید با حجم کامل
                         MqlTradeRequest request;
                         MqlTradeResult result;
                         ZeroMemory(request);
@@ -181,36 +209,34 @@ void ManageStairwayExecution()
                         request.tp = GetLinePrice(LINE_TAKE_PROFIT);
                         request.type = is_buy_setup ? ORDER_TYPE_BUY_LIMIT : ORDER_TYPE_SELL_LIMIT;
                         request.magic = g_magic_number;
-                        request.comment = "Stairway_Full_Pending";
+                        request.comment = "Stairway_Full_Pending_Corrective";
                         
                         if(!trade.OrderSend(request, result))
                         {
                             Alert(StringFormat("ارسال سفارش ۱۰۰٪ جدید با خطا مواجه شد. Comment: %s", result.comment));
                         }
-                        else
-                        {
-                            Alert(StringFormat("سفارش ۱۰۰٪ جدید با موفقیت در قیمت %s ارسال شد.", DoubleToString(request.price, _Digits)));
-                        }
                     }
                 }
             }
-            else 
+            else // اگر کندل تایید نشد (شکست فیک)
             {
                 if(is_step1_triggered)
                 {
-                    Alert("پولبک ناموفق! پله ۱ فعال شد اما کندل تایید نشد. پله ۲ لغو گردید.");
+                    Alert("پولبک ناموفق! پله ۱ فعال شد اما کندل تایید نشد. پله ۲ لغو گردید. معامله با حجم کمتر ادامه می‌یابد.");
                 }
                 else
                 {
-                    Alert("شکست ناموفق بود. در حال لغو سفارش معلق...");
+                    Alert("شکست ناموفق بود. کندل تایید نشد. در حال لغو سفارش معلق پله اول...");
                     trade.OrderDelete(g_stairway_step1_ticket);
                 }
             }
             
+            // در هر صورت، پس از بررسی کلوز کندل، فرآیند تمام شده و به حالت آماده برمی‌گردیم
             ResetToIdleState();
         }
     }
 }
+
 
 //+------------------------------------------------------------------+
 //| تابع مدیریت استاپ لاس مخفی (نسخه نهایی و اصلاح شده)               |

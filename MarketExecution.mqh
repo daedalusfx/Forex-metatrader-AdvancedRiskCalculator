@@ -16,7 +16,7 @@ void SetupMarketTrade(ETradeState newState)
    ObjectSetInteger(0, LINE_ENTRY_PRICE, OBJPROP_SELECTABLE, false);
    ObjectSetInteger(0, LINE_TAKE_PROFIT, OBJPROP_SELECTABLE, InpTPMode == TP_MANUAL);
    
-   if(InpTPMode == TP_RR_RATIO) UpdateAutoTPLine();
+   if(InpTPMode == TP_RR_RATIO) UpdateDynamicLines();
 
    UpdateAllLabels();
    ChartRedraw();
