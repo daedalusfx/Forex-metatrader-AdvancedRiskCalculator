@@ -17,8 +17,7 @@ static double   g_stairway_total_lot = 0;
 void SetupStairwayTrade(ETradeState newState)
 {
     ExtDialog.SetCurrentState(newState);
-    CreateTradeLines(ExtDialog.GetCurrentState());
-    // CreateTradeLines();
+    CreateTradeLines();
     UpdateAllLabels();
     ChartRedraw();
     Alert("Stairway Entry Armed. Drag lines to desired levels. EA is monitoring for a breakout...");
