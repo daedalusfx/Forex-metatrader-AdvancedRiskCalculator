@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ویژگی‌ها - Griffin Apex</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; }
+        .gradient-bg-header { background: linear-gradient(120deg, #1e3a8a 0%, #111827 50%); }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <!-- Header -->
+    <header class="bg-gray-900/80 backdrop-blur-sm sticky top-0 z-50 border-b border-gray-700">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+             <a href="index.html" class="flex items-center space-x-3 space-x-reverse">
+                <svg class="w-10 h-10" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" /><stop offset="100%" style="stop-color:#1e3a8a;stop-opacity:1" /></linearGradient></defs><path fill="url(#headerGrad)" d="M50 10 C 30 15, 20 30, 22 50 C 20 60, 25 80, 40 90 C 42 85, 45 70, 48 60 L 52 60 C 55 70, 58 85, 60 90 C 75 80, 80 60, 78 50 C 80 30, 70 15, 50 10 Z M 45 40 A 5 5 0 1 1 55 40 A 5 5 0 1 1 45 40" transform="translate(0, -5)"/><path fill="none" stroke="#3b82f6" stroke-width="5" stroke-linecap="round" d="M22 50 C 10 45, 5 30, 15 20"/><path fill="none" stroke="#3b82f6" stroke-width="5" stroke-linecap="round" d="M78 50 C 90 45, 95 30, 85 20"/></svg>
+                <h1 class="text-2xl font-bold text-white">Griffin<span class="text-blue-400">Apex</span></h1>
+            </a>
+            <nav class="hidden md:flex space-x-8 space-x-reverse text-lg items-center">
+                <a href="index.html" class="hover:text-blue-400 transition-colors">خانه</a>
+                <a href="features.html" class="text-blue-400 font-bold">ویژگی‌ها</a>
+                <a href="guide.html" class="hover:text-blue-400 transition-colors">راهنما</a>
+                <a href="prop-guardian.html" class="hover:text-blue-400 transition-colors">محافظ پراپ</a>
+                <a href="faq.html" class="hover:text-blue-400 transition-colors">سوالات متداول</a>
+                <a href="index.html#download" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-lg transition-transform hover:scale-105">دریافت</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <div class="gradient-bg-header py-20">
+            <div class="container mx-auto px-6 text-center">
+                <h1 class="text-5xl font-black text-white">بررسی عمیق ویژگی‌ها</h1>
+                <p class="text-xl text-gray-300 mt-4">با جزئیات فنی و قدرت واقعی Griffin Apex آشنا شوید.</p>
+            </div>
+        </div>
+
+        <div class="container mx-auto px-6 py-20 space-y-24">
+            
+            <!-- Feature: Prop Firm Guardian -->
+            <div class="flex flex-col md:flex-row items-center gap-12">
+                <div class="md:w-1/2">
+                    <h2 class="text-3xl font-bold text-white">ماژول محافظ پراپ (Prop Firm Guardian)</h2>
+                    <p class="text-lg text-gray-300 mt-4">مهم‌ترین قابلیت Griffin Apex، سیستم ایمنی پیشگیرانه آن است. این ماژول با شبیه‌سازی بدترین سناریوی ممکن (رسیدن تمام معاملات باز به حد ضرر)، از اجرای معامله‌ای که منجر به نقض قوانین دراودان روزانه یا کلی شود، جلوگیری می‌کند. این ویژگی هم از دراودان ثابت (Static) و هم شناور (Trailing) پشتیبانی کرده و وضعیت حساب را بین جلسات معاملاتی ذخیره می‌کند تا محاسبات همیشه دقیق باقی بمانند.</p>
+                    <a href="prop-guardian.html" class="text-blue-400 mt-4 inline-block font-semibold hover:underline">جزئیات کامل محافظ پراپ ←</a>
+                </div>
+                <div class="md:w-1/2">
+                    <img src="https://placehold.co/800x600/1f2937/9ca3af?text=Prop+Guardian+Dashboard" class="rounded-lg shadow-xl" alt="داشبورد محافظ پراپ">
+                </div>
+            </div>
+
+            <!-- Feature: Stairway Entry -->
+            <div class="flex flex-col md:flex-row-reverse items-center gap-12">
+                <div class="md:w-1/2">
+                    <h2 class="text-3xl font-bold text-white">استراتژی ورود پلکانی (Stairway Entry)</h2>
+                    <p class="text-lg text-gray-300 mt-4">این استراتژی هوشمند برای مقابله با شکست‌های فیک طراحی شده است. پس از شکست یک سطح کلیدی، اکسپرت یک سفارش لیمیت با حجم کم در نقطه پولبک قرار می‌دهد. سپس منتظر بسته شدن کندل شکست می‌ماند. اگر کندل، شکست را تایید کند، حجم باقیمانده وارد معامله می‌شود. در غیر این صورت، سفارش اولیه لغو شده و از یک ورود پرریسک جلوگیری می‌شود. این استراتژی از حد ضرر مخفی برای انعطاف‌پذیری بیشتر استفاده می‌کند.</p>
+                </div>
+                <div class="md:w-1/2">
+                    <img src="https://placehold.co/800x600/1f2937/9ca3af?text=Stairway+Entry+in+Action" class="rounded-lg shadow-xl" alt="استراتژی ورود پلکانی">
+                </div>
+            </div>
+
+            <!-- Feature: Precise Lot Sizing -->
+            <div class="flex flex-col md:flex-row items-center gap-12">
+                <div class="md:w-1/2">
+                    <h2 class="text-3xl font-bold text-white">محاسبه دقیق حجم و R:R پویا</h2>
+                    <p class="text-lg text-gray-300 mt-4">با جابجا کردن خطوط حد ضرر و ورود روی چارت، Griffin Apex به صورت آنی حجم دقیق معامله را بر اساس ریسک درصدی یا دلاری شما محاسبه می‌کند. این محاسبه با در نظر گرفتن محدودیت‌های حجم بروکر (حداقل، حداکثر و گام تغییر) انجام می‌شود تا از هرگونه خطا جلوگیری شود. علاوه بر این، در حالت R:R خودکار، خط حد سود نیز به صورت پویا و بر اساس نسبت ریسک به ریوارد انتخابی شما جابجا می‌شود.</p>
+                </div>
+                <div class="md:w-1/2">
+                    <img src="https://placehold.co/800x600/1f2937/9ca3af?text=Dynamic+Lot+and+R:R" class="rounded-lg shadow-xl" alt="محاسبه حجم پویا">
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 border-t border-gray-800">
+        <div class="container mx-auto px-6 py-8 text-center text-gray-500">
+            <p>&copy; 2025 Griffin Apex. تمامی حقوق محفوظ است.</p>
+        </div>
+    </footer>
+
+</body>
+</html>

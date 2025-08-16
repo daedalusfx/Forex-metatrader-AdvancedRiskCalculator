@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Griffin Apex - ابزار پیشرفته مدیریت ریسک برای MT5</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .gradient-bg {
+            background: linear-gradient(120deg, #1e3a8a 0%, #111827 100%);
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <!-- Header -->
+    <header class="bg-gray-900/80 backdrop-blur-sm sticky top-0 z-50 border-b border-gray-700">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="index.html" class="flex items-center space-x-3 space-x-reverse">
+                <svg class="w-10 h-10" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" /><stop offset="100%" style="stop-color:#1e3a8a;stop-opacity:1" /></linearGradient></defs><path fill="url(#headerGrad)" d="M50 10 C 30 15, 20 30, 22 50 C 20 60, 25 80, 40 90 C 42 85, 45 70, 48 60 L 52 60 C 55 70, 58 85, 60 90 C 75 80, 80 60, 78 50 C 80 30, 70 15, 50 10 Z M 45 40 A 5 5 0 1 1 55 40 A 5 5 0 1 1 45 40" transform="translate(0, -5)"/><path fill="none" stroke="#3b82f6" stroke-width="5" stroke-linecap="round" d="M22 50 C 10 45, 5 30, 15 20"/><path fill="none" stroke="#3b82f6" stroke-width="5" stroke-linecap="round" d="M78 50 C 90 45, 95 30, 85 20"/></svg>
+                <h1 class="text-2xl font-bold text-white">Griffin<span class="text-blue-400">Apex</span></h1>
+            </a>
+            <nav class="hidden md:flex space-x-8 space-x-reverse text-lg items-center">
+                <a href="index.html" class="text-blue-400 font-bold">خانه</a>
+                <a href="features.html" class="hover:text-blue-400 transition-colors">ویژگی‌ها</a>
+                <a href="guide.html" class="hover:text-blue-400 transition-colors">راهنما</a>
+                <a href="prop-guardian.html" class="hover:text-blue-400 transition-colors">محافظ پراپ</a>
+                <a href="faq.html" class="hover:text-blue-400 transition-colors">سوالات متداول</a>
+                <a href="#download" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-lg transition-transform hover:scale-105">دریافت</a>
+            </nav>
+            <button class="md:hidden text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <main class="gradient-bg">
+        <div class="container mx-auto px-6 py-24 text-center">
+            <h2 class="text-5xl md:text-7xl font-black text-white leading-tight">
+                نگهبان <span class="text-blue-400">سرمایه</span>، اوج <span class="text-blue-400">عملکرد</span>
+            </h2>
+            <p class="mt-6 text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto">
+                Griffin Apex ابزار نهایی شما برای مدیریت دقیق ریسک و پاس کردن چالش‌های پراپ است. با قدرت و هوش گریفین، معاملات خود را به سطح بالاتری ببرید.
+            </p>
+            <div class="mt-10 flex justify-center items-center space-x-4 space-x-reverse">
+                <a href="#download" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-lg text-xl transition-transform hover:scale-105 shadow-lg shadow-blue-500/30">
+                    اکسپرت را رایگان تست کنید
+                </a>
+                <a href="guide.html" class="border border-gray-500 hover:bg-gray-700 text-white font-bold py-4 px-10 rounded-lg text-xl transition-colors">
+                    مشاهده راهنما
+                </a>
+            </div>
+            <div class="mt-12">
+                <div class="max-w-4xl mx-auto bg-gray-800 rounded-xl shadow-2xl p-4 border border-gray-700">
+                     <img src="https://placehold.co/1200x675/1f2937/9ca3af?text=Griffin+Apex+UI" alt="تصویر نرم‌افزار گریفین اپکس" class="rounded-lg">
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Features Overview -->
+    <section id="features" class="py-20 bg-gray-900">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h3 class="text-4xl font-bold text-white">هر آنچه برای معامله حرفه‌ای نیاز دارید</h3>
+                <p class="text-lg text-gray-400 mt-4">نگاهی گذرا به قدرتمندترین ویژگی‌های Griffin Apex</p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="glass-effect p-8 rounded-2xl text-center">
+                    <h4 class="text-2xl font-bold text-blue-400 mb-4">محاسبه دقیق حجم</h4>
+                    <p class="text-gray-300">محاسبه آنی حجم معامله بر اساس درصد ریسک یا مبلغ ثابت.</p>
+                </div>
+                <div class="glass-effect p-8 rounded-2xl text-center">
+                    <h4 class="text-2xl font-bold text-blue-400 mb-4">استراتژی ورود پلکانی</h4>
+                    <p class="text-gray-300">ورود هوشمند دو مرحله‌ای برای جلوگیری از شکست‌های فیک.</p>
+                </div>
+                <div class="glass-effect p-8 rounded-2xl text-center">
+                    <h4 class="text-2xl font-bold text-blue-400 mb-4">محافظ قوانین پراپ</h4>
+                    <p class="text-gray-300">سیستم ایمنی پیشگیرانه برای جلوگیری از نقض قوانین دراودان.</p>
+                </div>
+            </div>
+            <div class="text-center mt-12">
+                <a href="features.html" class="text-blue-400 text-lg font-semibold hover:underline">مشاهده تمام ویژگی‌ها ←</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Prop Guardian Highlight -->
+    <section id="prop-guardian-highlight" class="py-20 bg-gray-800/50">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row items-center gap-12">
+                <div class="md:w-1/2">
+                    <span class="text-blue-400 font-bold">مهم‌ترین ویژگی</span>
+                    <h3 class="text-4xl font-black text-white mt-2">دیگر نگران نقض قوانین پراپ نباشید</h3>
+                    <p class="text-lg text-gray-300 mt-6">ماژول "محافظ پراپ" گریفین، نگهبان حساب شماست. این ماژول قبل از هر معامله، بدترین سناریو را شبیه‌سازی می‌کند و اگر تشخیص دهد معامله جدید قوانین دراودان را نقض می‌کند، به طور خودکار از اجرای آن جلوگیری کرده و حساب شما را نجات می‌دهد.</p>
+                    <div class="mt-8">
+                        <a href="prop-guardian.html" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition-transform hover:scale-105">
+                            بیشتر بیاموزید
+                        </a>
+                    </div>
+                </div>
+                <div class="md:w-1/2">
+                    <img src="https://placehold.co/800x600/1f2937/9ca3af?text=Prop+Guardian+Diagram" alt="نمودار محافظ پراپ" class="rounded-2xl shadow-xl">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action / Download Section -->
+    <section id="download" class="py-24 bg-gray-900">
+        <div class="container mx-auto px-6 text-center">
+            <h3 class="text-5xl font-black text-white">کنترل کامل معاملات خود را به دست بگیرید</h3>
+            <p class="text-xl text-gray-300 mt-5 max-w-2xl mx-auto">به جمع معامله‌گران حرفه‌ای بپیوندید که با ابزارهای هوشمند، ریسک خود را مدیریت کرده و به اهداف خود می‌رسند.</p>
+            <div class="mt-10">
+                <a href="#" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-lg text-xl transition-transform hover:scale-105 shadow-lg shadow-blue-500/30">
+                    دانلود نسخه آزمایشی Griffin Apex
+                </a>
+                <p class="text-gray-400 mt-4">سازگار با پلتفرم متاتریدر ۵</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 border-t border-gray-800">
+        <div class="container mx-auto px-6 py-8">
+            <div class="grid md:grid-cols-3 gap-8 text-center md:text-right">
+                <div>
+                    <h4 class="text-lg font-bold text-white">Griffin Apex</h4>
+                    <p class="text-gray-400 mt-2">ابزار پیشرفته مدیریت ریسک برای معامله‌گران جدی.</p>
+                </div>
+                <div>
+                    <h4 class="text-lg font-bold text-white">صفحات</h4>
+                    <ul class="mt-2 space-y-2">
+                        <li><a href="features.html" class="text-gray-400 hover:text-blue-400">ویژگی‌ها</a></li>
+                        <li><a href="guide.html" class="text-gray-400 hover:text-blue-400">راهنمای نصب</a></li>
+                        <li><a href="faq.html" class="text-gray-400 hover:text-blue-400">سوالات متداول</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-bold text-white">حقوقی</h4>
+                    <p class="text-gray-400 mt-2 text-sm">هشدار ریسک: معامله در بازارهای مالی ریسک بالایی دارد و ممکن است منجر به از دست رفتن سرمایه شما شود.</p>
+                </div>
+            </div>
+            <div class="mt-8 border-t border-gray-800 pt-6 text-center text-gray-500">
+                <p>&copy; 2025 Griffin Apex. تمامی حقوق محفوظ است.</p>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

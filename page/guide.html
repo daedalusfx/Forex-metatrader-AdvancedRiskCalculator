@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>راهنمای جامع - Griffin Apex</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; }
+        .prose { @apply text-gray-300 max-w-none; }
+        .prose h2 { @apply text-3xl font-bold text-white mb-4 mt-12 border-b border-gray-700 pb-2; }
+        .prose h3 { @apply text-2xl font-bold text-blue-400 mb-3 mt-8; }
+        .prose p { @apply text-lg leading-relaxed mb-4; }
+        .prose ol { @apply list-decimal list-inside space-y-2 mb-4; }
+        .prose code { @apply bg-gray-800 text-yellow-400 rounded px-2 py-1; }
+        .prose table { @apply w-full text-left border-collapse; }
+        .prose th, .prose td { @apply border border-gray-700 p-3; }
+        .prose th { @apply bg-gray-800 text-white font-bold; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <!-- Header -->
+    <header class="bg-gray-900/80 backdrop-blur-sm sticky top-0 z-50 border-b border-gray-700">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+             <a href="index.html" class="flex items-center space-x-3 space-x-reverse">
+                <svg class="w-10 h-10" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" /><stop offset="100%" style="stop-color:#1e3a8a;stop-opacity:1" /></linearGradient></defs><path fill="url(#headerGrad)" d="M50 10 C 30 15, 20 30, 22 50 C 20 60, 25 80, 40 90 C 42 85, 45 70, 48 60 L 52 60 C 55 70, 58 85, 60 90 C 75 80, 80 60, 78 50 C 80 30, 70 15, 50 10 Z M 45 40 A 5 5 0 1 1 55 40 A 5 5 0 1 1 45 40" transform="translate(0, -5)"/><path fill="none" stroke="#3b82f6" stroke-width="5" stroke-linecap="round" d="M22 50 C 10 45, 5 30, 15 20"/><path fill="none" stroke="#3b82f6" stroke-width="5" stroke-linecap="round" d="M78 50 C 90 45, 95 30, 85 20"/></svg>
+                <h1 class="text-2xl font-bold text-white">Griffin<span class="text-blue-400">Apex</span></h1>
+            </a>
+            <nav class="hidden md:flex space-x-8 space-x-reverse text-lg items-center">
+                <a href="index.html" class="hover:text-blue-400 transition-colors">خانه</a>
+                <a href="features.html" class="hover:text-blue-400 transition-colors">ویژگی‌ها</a>
+                <a href="guide.html" class="text-blue-400 font-bold">راهنما</a>
+                <a href="prop-guardian.html" class="hover:text-blue-400 transition-colors">محافظ پراپ</a>
+                <a href="faq.html" class="hover:text-blue-400 transition-colors">سوالات متداول</a>
+                <a href="index.html#download" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-lg transition-transform hover:scale-105">دریافت</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-16">
+        <article class="prose">
+            <h1>راهنمای جامع Griffin Apex</h1>
+            <p>این راهنما به شما کمک می‌کند تا اکسپرت Griffin Apex را به درستی نصب، تنظیم و استفاده کنید. لطفاً تمام مراحل را با دقت دنبال کنید.</p>
+
+            <h2>مرحله ۱: نصب اکسپرت</h2>
+            <ol>
+                <li>فایل <code>GriffinApex.ex5</code> را از بخش ریلیزهای گیت‌هاب دانلود کنید.</li>
+                <li>در پلتفرم متاتریدر ۵، از منوی بالا به مسیر <code>File > Open Data Folder</code> بروید.</li>
+                <li>در پنجره‌ای که باز می‌شود، وارد پوشه <code>MQL5</code> و سپس پوشه <code>Experts</code> شوید.</li>
+                <li>فایل <code>GriffinApex.ex5</code> را که دانلود کرده‌اید، در این پوشه کپی کنید.</li>
+                <li>متاتریدر را ببندید و دوباره باز کنید.</li>
+                <li>در پنل Navigator (معمولاً سمت چپ)، لیست Expert Advisors را باز کنید. Griffin Apex باید در این لیست قابل مشاهده باشد.</li>
+                <li>اکسپرت را بکشید و روی چارت مورد نظر خود رها کنید (Drag and Drop).</li>
+                <li>در پنجره تنظیمات اکسپرت، به تب <code>Common</code> رفته و تیک گزینه <code>Allow Algo Trading</code> را بزنید.</li>
+            </ol>
+
+            <h2>مرحله ۲: تنظیمات ورودی (Inputs)</h2>
+            <p>در تب <code>Inputs</code> می‌توانید تمام پارامترهای اکسپرت را مطابق با استراتژی و قوانین پراپ خود تنظیم کنید. در ادامه توضیح هر پارامتر آمده است.</p>
+            
+            <h3>بخش Risk & Safety Settings</h3>
+            <table>
+                <thead>
+                    <tr><th>پارامتر</th><th>توضیح</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>InpRiskMode</td><td>حالت محاسبه ریسک را تعیین می‌کند: <code>RISK_PERCENT</code> (درصدی) یا <code>RISK_MONEY</code> (مبلغ ثابت).</td></tr>
+                    <tr><td>InpRiskPercent</td><td>درصد ریسک از کل بالانس حساب (مثلاً 1.0 برای یک درصد).</td></tr>
+                    <tr><td>InpMaxMarginUsagePercent</td><td>حداکثر درصد مارجین آزاد که یک معامله می‌تواند استفاده کند. (برای جلوگیری از خطای کمبود مارجین)</td></tr>
+                </tbody>
+            </table>
+
+            <h3>بخش Prop Firm Rules</h3>
+            <table>
+                <thead>
+                    <tr><th>پارامتر</th><th>توضیح</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>InpEnablePropRules</td><td>برای فعال‌سازی ماژول محافظ پراپ، این گزینه را <code>true</code> قرار دهید.</td></tr>
+                    <tr><td>InpMaxDailyDrawdownPercent</td><td>حداکثر افت سرمایه روزانه مجاز (به درصد).</td></tr>
+                    <tr><td>InpMaxOverallDrawdownPercent</td><td>حداکثر افت سرمایه کلی مجاز (به درصد).</td></tr>
+                    <tr><td>InpDailyDDBase</td><td>مبنای محاسبه دراودان روزانه: <code>DD_FROM_BALANCE</code> (از بالانس اول روز) یا <code>DD_FROM_EQUITY</code> (از اکوئیتی اول روز).</td></tr>
+                    <tr><td>InpOverallDDType</td><td>نوع دراودان کلی: <code>DD_TYPE_STATIC</code> (ثابت از بالانس اولیه) یا <code>DD_TYPE_TRAILING</code> (شناور از بالاترین اکوئیتی).</td></tr>
+                </tbody>
+            </table>
+            
+            <h2>مرحله ۳: استفاده از پنل</h2>
+            <h3>اجرای معامله Market</h3>
+            <ol>
+                <li>روی دکمه Buy یا Sell در بخش "Market Execution" کلیک کنید.</li>
+                <li>خط قرمز رنگ حد ضرر (Stop Loss) روی چارت ظاهر می‌شود. آن را به سطح مورد نظر خود بکشید.</li>
+                <li>حجم معامله به صورت خودکار در پنل نمایش داده می‌شود.</li>
+                <li>روی دکمه "Execute" کلیک کنید.</li>
+            </ol>
+            
+            <h3>قراردادن سفارش Pending</h3>
+            <ol>
+                <li>روی دکمه Buy یا Sell در بخش "Pending Order" کلیک کنید.</li>
+                <li>دو خط روی چارت ظاهر می‌شود: خط ورود (Entry) و خط حد ضرر (Stop Loss).</li>
+                <li>هر دو خط را به سطوح مورد نظر خود بکشید.</li>
+                <li>پس از تنظیم، روی دکمه "Place" کلیک کنید.</li>
+            </ol>
+        </article>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 border-t border-gray-800 mt-16">
+        <div class="container mx-auto px-6 py-8 text-center text-gray-500">
+            <p>&copy; 2025 Griffin Apex. تمامی حقوق محفوظ است.</p>
+        </div>
+    </footer>
+
+</body>
+</html>
