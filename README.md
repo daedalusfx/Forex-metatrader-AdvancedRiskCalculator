@@ -8,6 +8,21 @@ The Advanced Risk Calculator is a comprehensive trade management Expert Advisor 
 
 This EA is built on a highly modular and robust architecture, featuring a clean separation of logic for UI, trade execution, and risk management. It also includes a suite of unit tests to ensure the reliability of its core financial calculations.
 
+
+
+### 🖼️ Screenshots
+
+* The on-chart control panel
+* Lot size calculation in action
+* Example of market vs pending order setup
+
+
+![Panel](screenshouts/beta_panel.png)
+
+---
+
+
+
 ## ✨ Key Features
 
 -   [cite_start]**Precise Lot Sizing**: Automatically calculates the correct lot size based on a percentage of the account balance or a fixed monetary amount[cite: 74].
