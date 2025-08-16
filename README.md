@@ -1,215 +1,105 @@
-# 🔐 Advanced Risk Calculator for MetaTrader 5
+# Advanced Risk Calculator EA for MetaTrader 5
 
-An intuitive and powerful Expert Advisor for MetaTrader 5 designed to simplify **risk management** and enhance **trade execution**. It features a modern, on-chart control panel that helps you calculate position sizes automatically and place market or pending orders with precision — all in just a few clicks.
+[![Platform](https://img.shields.io/badge/Platform-MetaTrader%205-blue.svg)](https://www.metatrader5.com)
+[![Language](https://img.shields.io/badge/Language-MQL5-orange.svg)](https://www.mql5.com)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
+The Advanced Risk Calculator is a comprehensive trade management Expert Advisor for MetaTrader 5. It is designed to provide traders with precise risk control, streamlined trade execution, and powerful tools to successfully navigate the challenges of proprietary trading firms (prop firms).
 
+This EA is built on a highly modular and robust architecture, featuring a clean separation of logic for UI, trade execution, and risk management. It also includes a suite of unit tests to ensure the reliability of its core financial calculations.
 
-### 🖼️ Screenshots
+## ✨ Key Features
 
-Include screenshots of:
-
-* The on-chart control panel
-* Lot size calculation in action
-* Example of market vs pending order setup
-
-
-![Panel](screenshouts/panel1.png)
-![Panel](screenshouts/panel2.png)
-
----
-
-
-
-
-
-
-
-
-
-🌐 [English](#english) | [فارسی (Persian)](#فارسی-persian)
+-   [cite_start]**Precise Lot Sizing**: Automatically calculates the correct lot size based on a percentage of the account balance or a fixed monetary amount[cite: 74].
+-   **Multiple Execution Modes**:
+    -   [cite_start]**Market Execution**: Enter trades instantly at the current market price[cite: 67].
+    -   [cite_start]**Pending Orders**: Set up limit or stop orders with precision[cite: 67].
+    -   [cite_start]**Stairway Entry**: A unique, multi-step entry strategy for breakout confirmation[cite: 67].
+-   **Advanced Prop Firm Guardian**: A dedicated module to help you stay within the rules of prop firm challenges.
+    -   [cite_start]Monitors real-time daily and maximum drawdown limits[cite: 103, 104].
+    -   [cite_start]Supports both **Static** and **Trailing** drawdown models[cite: 108].
+    -   [cite_start]**Pre-Trade Safety Check**: Simulates the worst-case scenario *before* placing a trade to prevent potential rule violations[cite: 140].
+    -   [cite_start]Persists account state between platform restarts to maintain accurate tracking[cite: 631].
+-   **Modern & Informative UI**:
+    -   [cite_start]A main control panel for initiating trades[cite: 378].
+    -   [cite_start]A graphical **Display Canvas** that shows live P/L, open risk, and prop firm rule metrics[cite: 304, 516].
+    -   [cite_start]A **Spread vs. ATR Analysis** panel to gauge market conditions and trading costs in real-time[cite: 199].
+-   [cite_start]**Dynamic R:R Lines**: Automatically calculates and adjusts the Take Profit line based on a specified Risk-to-Reward ratio[cite: 75].
 
 ---
 
+## ⚙️ Installation & Setup
 
-
-
-
-
-
-## 🌍 English
-
-### Overview
-
-**Advanced Risk Calculator** is a lightweight yet powerful trading assistant built for MT5. It removes the hassle of manual lot size calculations and reduces the risk of costly errors. Simply place your Entry and Stop Loss levels visually on the chart, and the panel instantly calculates the correct lot size based on your selected risk percentage.
-
-This tool allows you to focus on your **strategy**, not your calculator.
+1.  **Download the Project**: Clone or download the repository to your local machine.
+2.  **Open MetaEditor**: In your MT5 terminal, go to `Tools > MetaQuotes Language Editor`.
+3.  **Copy Files**: In the MetaEditor's Navigator panel, right-click on the `Experts` folder and select `Open Folder`. Copy all the project files (`.mq5` and `.mqh`) into this directory. It is recommended to keep them in a subfolder (e.g., `MQL5\Experts\AdvancedRiskCalculator\`) to maintain the project structure.
+4.  **Compile the EA**: In MetaEditor, open the main `AdvancedRiskCalculator.mq5` file and press `F7` or click the `Compile` button.
+5.  **Attach to Chart**: In your MT5 terminal, find the "AdvancedRiskCalculator" EA in the Navigator under the `Expert Advisors` section. Drag and drop it onto the chart of your choice.
+6.  **Enable Algo Trading**: Ensure the "Allow Algo Trading" button is enabled in the EA's input settings and on your MT5 terminal toolbar.
 
 ---
 
-### 🔑 Features
+## 🔧 Configuration (Input Parameters)
 
-* **🔢 Risk-Based Lot Size Calculation**
-  Automatically calculates position size based on your account balance and defined risk %.
+The EA's behavior can be customized through the following input parameters found in `Defines.mqh`:
 
-* **🛒 Market & Pending Orders**
-  Easily place Market (instant execution) or Pending (Stop/Limit) orders.
+#### Risk & Safety Settings
+-   [cite_start]`InpRiskMode`: Choose the basis for risk calculation: `RISK_PERCENT` or `RISK_MONEY`[cite: 74].
+-   [cite_start]`InpRiskPercent`: The risk percentage of your account balance to use if `RISK_PERCENT` mode is active[cite: 71].
+-   [cite_start]`InpMaxMarginUsagePercent`: A safety feature that prevents a trade from consuming more than a specified percentage of your free margin[cite: 73].
 
-* **📈 Interactive Chart Elements**
-  Drag horizontal lines to set Entry, SL, and TP levels directly on the chart.
+#### Take Profit Settings
+-   [cite_start]`InpTPMode`: Set the Take Profit mode to `TP_MANUAL` or `TP_RR_RATIO`[cite: 75].
+-   [cite_start]`InpTP_RR_Value`: The desired Risk-to-Reward ratio (e.g., `2.0` for a 1:2 R:R) when `TP_RR_RATIO` mode is active[cite: 75].
 
-* **⏱️ Real-Time Calculations**
-  The panel shows:
+#### Stairway Entry Settings
+-   [cite_start]`InpStairwayInitialPercent`: The percentage of the total lot size to use for the first entry step in the Stairway strategy[cite: 69].
 
-  * Suggested lot size
-  * Risk value (in account currency)
-  * Risk-to-Reward ratio (R\:R)
-  * Distance in pips for SL/TP
-
-* **🧑‍💻 Modern UI**
-  Built with the MQL5 standard library for a clean and responsive user experience.
-
-* **⚙️ Fully Customizable**
-  Adjust input parameters like risk %, default R\:R ratio, and panel appearance.
+#### Prop Firm Rules
+-   [cite_start]`InpEnablePropRules`: Set to `true` to activate the Prop Firm Guardian module[cite: 103].
+-   [cite_start]`InpMaxDailyDrawdownPercent`: The maximum allowed daily loss percentage[cite: 104].
+-   [cite_start]`InpMaxOverallDrawdownPercent`: The maximum allowed overall loss percentage[cite: 104].
+-   [cite_start]`InpDailyDDBase`: The basis for calculating daily drawdown: from the day's starting `DD_FROM_BALANCE` or `DD_FROM_EQUITY`[cite: 107].
+-   [cite_start]`InpOverallDDType`: The type of maximum drawdown calculation: `DD_TYPE_STATIC` (based on initial balance) or `DD_TYPE_TRAILING` (based on peak equity)[cite: 108].
 
 ---
 
-### 🛠 Installation
+## 🧠 Core Concepts Explained
 
-1. Download `AdvancedRiskCalculator_v2.ex5` (compiled) or the source files: `.mq5` and `.mqh`.
-2. Open MetaTrader 5.
-3. Go to `File -> Open Data Folder`.
-4. Navigate to `MQL5 -> Experts`.
-5. Copy the downloaded file(s) into this folder.
-6. In MT5, right-click the “Expert Advisors” section in the Navigator, then click **Refresh**.
-7. “Advanced Risk Calculator” will now appear in your list.
+#### Prop Firm Guardian
+This is more than just a display. [cite_start]Before any new trade is sent to the server, the EA performs a critical simulation[cite: 140]. It calculates the total potential loss if the new trade *and* all other currently open positions were to hit their stop losses simultaneously. If this combined loss would violate the daily or maximum drawdown rules, the trade is automatically rejected, protecting your account from a breach.
 
----
-
-### 🚀 How to Use
-
-#### ✔️ For Market Orders
-
-1. Drag the EA onto your chart.
-2. Make sure “Algo Trading” is enabled.
-3. Click **Market Buy** or **Market Sell**.
-4. Entry price will be fixed to the current market.
-5. Drag the red SL line to your desired level.
-6. Lot size and risk will update automatically.
-7. Click **Execute** to place the order.
-
-#### ⏳ For Pending Orders
-
-1. Click **Pending Buy** or **Pending Sell**.
-2. Drag Entry, SL, and TP lines to your desired prices.
-3. The panel updates all values in real-time.
-4. Click **Place** to send the order.
-
-> To cancel an operation at any point, click the **Cancel** button.
+#### Stairway Entry Strategy
+[cite_start]This is an advanced entry protocol designed to avoid false breakouts[cite: 260].
+1.  **Monitor**: The EA waits for the price to break a user-defined "Breakout" line.
+2.  **Arm**: Once broken, it places an initial pending (limit) order with a partial lot size at a "Pullback Entry" line.
+3.  **Confirm**: It then waits for the breakout candle to close.
+4.  **Execute**:
+    -   **Ideal Scenario**: If the candle closes confirming the breakout and the initial order is filled, it places a second pending order for the remaining lot size.
+    -   **Corrective Scenario**: If the candle confirms but the price did not pull back to fill the first order, the EA cancels the initial order and places a new, full-sized pending order.
+    -   **Fakeout Scenario**: If the candle closes *against* the breakout direction, the EA cancels the pending order to prevent a bad entry.
 
 ---
 
-### 🧪 Demo Testing Recommended
+## ⚠️ Strategic Warning: Hidden Stop Loss Risk
 
-Before using this EA on a live account, it is **strongly recommended** to test it thoroughly on a **demo account**. This helps you become familiar with its behavior, controls, and performance under different market conditions — without risking real capital.
+[cite_start]The **Stairway Entry Strategy** utilizes a **hidden stop loss** managed by the `ManageStairwayHiddenSL` function[cite: 294]. This means the stop loss order is NOT placed on the broker's server; instead, the EA monitors the price and closes the position locally if the stop level is hit.
 
----
-
-### ⚠️ Risk Warning
-
-Trading in financial markets involves substantial risk and is not suitable for all investors. This tool is designed to assist with risk management but **does not eliminate the possibility of loss**. Use with caution and always trade responsibly.
+**Be aware of the inherent risks:**
+> If you lose your internet connection, your MetaTrader 5 terminal crashes, or your VPS fails, the hidden stop loss **will not execute**. Your position will be left unprotected without a server-side SL. Please ensure you have a stable connection and reliable hosting when using this strategy.
 
 ---
 
-### 📄 License
+## 💻 Development & Testing
 
-This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. See the `LICENSE` file for details.
+This Expert Advisor is built with a focus on quality and reliability.
+-   **Modular Architecture**: The code is cleanly separated into logical units (`.mqh` files) for easy maintenance and extension.
+-   **Unit Tested**: The core logic, including lot size calculation and prop firm safety checks, is validated by an automated test suite (`TestRunner.mq5`), ensuring that the financial calculations are accurate and behave as expected.
 
----
+## 🤝 Contributing
 
-## 🇮🇷 فارسی (Persian)
+Contributions are welcome! If you find a bug or have a feature request, please open an issue in the repository using the provided `issue_template.md`.
 
-### مرور کلی
+## 📜 License
 
-**اکسپرت Advanced Risk Calculator** یک دستیار معاملاتی قدرتمند و آسان برای متاتریدر ۵ است که شما را از محاسبه دستی حجم معامله بی‌نیاز کرده و خطای انسانی را به حداقل می‌رساند. تنها با مشخص کردن نقاط ورود و حد ضرر روی نمودار، حجم لات متناسب با درصد ریسک انتخابی شما فوراً محاسبه می‌شود.
-
-این ابزار به شما اجازه می‌دهد تا به‌جای محاسبات پیچیده، بر روی **استراتژی معاملاتی** خود تمرکز کنید.
-
----
-
-### ✨ ویژگی‌ها
-
-* **محاسبه خودکار حجم معامله بر اساس ریسک**
-  محاسبه حجم مناسب بر اساس درصد مشخصی از بالانس حساب.
-
-* **پشتیبانی از سفارشات Market و Pending**
-  امکان اجرای سفارشات فوری یا شرطی (Stop / Limit).
-
-* **خطوط تعاملی روی نمودار**
-  خطوط افقی قابل‌جابجایی برای تعیین بصری Entry، SL و TP.
-
-* **محاسبات لحظه‌ای و دقیق**
-  شامل:
-
-  * حجم لات پیشنهادی
-  * ارزش ریسک (بر اساس ارز حساب)
-  * نسبت ریسک به ریوارد (R\:R)
-  * فاصله SL/TP به پیپ
-
-* **رابط کاربری مدرن و حرفه‌ای**
-  طراحی شده با استفاده از کتابخانه رسمی MQL5.
-
-* **قابلیت شخصی‌سازی بالا**
-  تغییر تنظیماتی مانند درصد ریسک، نسبت R\:R و رنگ پنل از طریق پارامترهای ورودی.
-
----
-
-### ⚙️ نصب و راه‌اندازی
-
-1. فایل‌های `AdvancedRiskCalculator_v2.ex5` (کامپایل‌شده) یا نسخه‌های سورس `.mq5` و `.mqh` را دانلود کنید.
-2. متاتریدر ۵ را باز کرده و به مسیر `File -> Open Data Folder` بروید.
-3. وارد پوشه `MQL5 -> Experts` شوید.
-4. فایل‌های دانلودشده را در این پوشه کپی کنید.
-5. در پنجره Navigator روی "Expert Advisors" کلیک راست کرده و گزینه **Refresh** را انتخاب کنید.
-6. اکنون “Advanced Risk Calculator” در لیست قابل مشاهده است.
-
----
-
-### 🚀 نحوه استفاده
-
-#### 📌 برای سفارش‌های Market:
-
-1. اکسپرت را روی نمودار خود بکشید.
-2. مطمئن شوید گزینه "Algo Trading" فعال است.
-3. روی Market Buy یا Market Sell کلیک کنید.
-4. قیمت ورود روی قیمت فعلی بازار قفل می‌شود.
-5. خط SL را به موقعیت دلخواه بکشید.
-6. حجم و ریسک به‌صورت آنی محاسبه می‌شوند.
-7. در صورت تأیید، روی **Execute** کلیک کنید.
-
-#### 🕒 برای سفارش‌های Pending:
-
-1. روی Pending Buy یا Pending Sell کلیک کنید.
-2. خطوط Entry، SL و TP را به قیمت‌های مورد نظر بکشید.
-3. مقادیر پنل به‌صورت لحظه‌ای به‌روزرسانی می‌شوند.
-4. روی **Place** کلیک کنید.
-
-> برای لغو عملیات در هر زمان، دکمه **Cancel** را بزنید.
-
----
-
-### 🧪 پیشنهاد تست در حساب دمو
-
-پیشنهاد می‌شود قبل از استفاده از این اکسپرت در حساب واقعی، ابتدا آن را در یک **حساب دمو** تست و بررسی نمایید. این کار به شما کمک می‌کند تا با نحوه عملکرد و رابط گرافیکی آن در شرایط مختلف بازار آشنا شوید — بدون به‌خطر انداختن سرمایه واقعی.
-
-
----
-
-### ⚠️ هشدار ریسک
-
-معامله در بازارهای مالی دارای ریسک بالاست و برای همه افراد مناسب نیست. این ابزار تنها یک دستیار در مدیریت ریسک است و **هیچ تضمینی در سودآوری یا جلوگیری از ضرر ندارد**. لطفاً با دانش کامل و مسئولیت‌پذیری معامله کنید.
-
----
-
-### 📄 مجوز
-
-این پروژه تحت مجوز **GNU GPL نسخه ۳ (GPL-3.0)** منتشر شده است. برای جزئیات بیشتر به فایل `LICENSE` مراجعه نمایید.
+This project is licensed under the **GNU General Public License v3.0**. See the `LICENSE` file for more details.
