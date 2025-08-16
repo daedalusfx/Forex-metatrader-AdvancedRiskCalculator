@@ -17,7 +17,8 @@ static double   g_stairway_total_lot = 0;
 void SetupStairwayTrade(ETradeState newState)
 {
     ExtDialog.SetCurrentState(newState);
-    CreateTradeLines();
+    CreateTradeLines(ExtDialog.GetCurrentState());
+    // CreateTradeLines();
     UpdateAllLabels();
     ChartRedraw();
     Alert("Stairway Entry Armed. Drag lines to desired levels. EA is monitoring for a breakout...");
@@ -118,6 +119,7 @@ void ManageStairwayExecution()
             {
                 g_stairway_breakout_candle_time = iTime(_Symbol, 0, 0);
                 ExtDialog.SetCurrentState(STATE_STAIRWAY_WAITING_FOR_CONFIRMATION);
+                ExtDialog.UpdateStairwayPanel("Breakout! Waiting candle close...", GetLinePrice(LINE_ENTRY_PRICE), GetLinePrice(LINE_PENDING_ENTRY));
                 Alert("شکست قیمت شناسایی شد! سفارش معلق پله اول ارسال شد. در انتظار بسته شدن کندل برای تایید...");
             }
             else
@@ -153,6 +155,8 @@ void ManageStairwayExecution()
                 if(is_step1_triggered)
                 {
                     Alert("ورود ایده‌آل! پله ۱ فعال و کندل تایید شد. در حال ارسال پله ۲ به صورت Pending...");
+                    ExtDialog.UpdateStairwayPanel("Confirmed. Placing Step 2...", GetLinePrice(LINE_ENTRY_PRICE), GetLinePrice(LINE_PENDING_ENTRY));
+
                     
                     double vol_step = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_STEP);
                     double current_pos_vol = PositionGetDouble(POSITION_VOLUME);
@@ -193,6 +197,7 @@ void ManageStairwayExecution()
                 else
                 {
                     Alert("سناریوی اصلاحی! پله ۱ فعال نشد اما کندل تایید شد. در حال جایگزینی با سفارش ۱۰۰٪.");
+                    ExtDialog.UpdateStairwayPanel("Corrective. Replacing order...", GetLinePrice(LINE_ENTRY_PRICE), GetLinePrice(LINE_PENDING_ENTRY));
                     if(trade.OrderDelete(g_stairway_step1_ticket)) // حذف سفارش معلق پله ۱
                     {
                         // ارسال یک سفارش جدید با حجم کامل
@@ -214,6 +219,8 @@ void ManageStairwayExecution()
                         if(!trade.OrderSend(request, result))
                         {
                             Alert(StringFormat("ارسال سفارش ۱۰۰٪ جدید با خطا مواجه شد. Comment: %s", result.comment));
+                            ExtDialog.UpdateStairwayPanel("Fakeout! Cancelling...", 0, 0);
+
                         }
                     }
                 }
@@ -223,6 +230,8 @@ void ManageStairwayExecution()
                 if(is_step1_triggered)
                 {
                     Alert("پولبک ناموفق! پله ۱ فعال شد اما کندل تایید نشد. پله ۲ لغو گردید. معامله با حجم کمتر ادامه می‌یابد.");
+                    ExtDialog.UpdateStairwayPanel("Confirmed. Placing Step 2...", GetLinePrice(LINE_ENTRY_PRICE), GetLinePrice(LINE_PENDING_ENTRY));
+
                 }
                 else
                 {

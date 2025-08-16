@@ -44,6 +44,8 @@ private:
     CLabel            m_lbl_title_stairway;
     CButton           m_btn_prep_stairway_buy;
     CButton           m_btn_prep_stairway_sell;
+    CLabel            m_lbl_stairway_status; // برچسب برای نمایش وضعیت
+    CLabel            m_lbl_stairway_prices; // برچسب برای نمایش قیمت‌ها
 
 public:
                       CPanelDialog(void);
@@ -66,6 +68,7 @@ public:
     void              SetMarketUIMode(ETradeState state);
     void              SetPendingUIMode(ETradeState state);
     void              SetExecuteButtonState();
+    void              UpdateStairwayPanel(string status, double breakout_price, double entry_price);
 
 protected:
     //--- ایجاد کنترل‌ها
@@ -225,7 +228,37 @@ bool CPanelDialog::CreateStairwayPanel(int x, int y)
     m_btn_prep_stairway_sell.Text("Arm Sell");
     if(!Add(m_btn_prep_stairway_sell)) return false;
 
+        // --- اضافه کردن کنترل‌های جدید به پنل ---
+        y_pos = y + 60;
+        if(!m_lbl_stairway_status.Create(m_chart_id, "StairwayStatus", m_subwin, x+10, y_pos, x+210, y_pos+20)) return false;
+        m_lbl_stairway_status.Text("Status: Idle");
+        m_lbl_stairway_status.Color(InpTextColor);
+        if(!Add(m_lbl_stairway_status)) return false;
+    
+        y_pos += 20;
+        if(!m_lbl_stairway_prices.Create(m_chart_id, "StairwayPrices", m_subwin, x+10, y_pos, x+210, y_pos+20)) return false;
+        m_lbl_stairway_prices.Text("Prices: N/A");
+        m_lbl_stairway_prices.Color(InpTextColor);
+        if(!Add(m_lbl_stairway_prices)) return false;
+        
+        // پنل را بزرگتر کنید تا کنترل‌های جدید جا شوند
+        m_panel_stairway.Height(115);
+
     return true;
+}
+
+
+void CPanelDialog::UpdateStairwayPanel(string status, double breakout_price, double entry_price)
+{
+    m_lbl_stairway_status.Text("Status: " + status);
+    
+    string price_text = "Prices: N/A";
+    if(breakout_price > 0 && entry_price > 0)
+    {
+        price_text = StringFormat("Breakout: %.5f | Entry: %.5f", breakout_price, entry_price);
+    }
+    m_lbl_stairway_prices.Text(price_text);
+    ChartRedraw();
 }
 
 
@@ -248,6 +281,8 @@ void CPanelDialog::HandleDragEvent(const string &dragged_object)
         else if(!is_stairway && !InpAutoEntryPending && (dragged_object == LINE_ENTRY_PRICE || dragged_object == LINE_STOP_LOSS))
         {
             UpdateDynamicLines(); // (Corrected)
+            UpdateStairwayPanel("Armed. Monitoring breakout...", GetLinePrice(LINE_ENTRY_PRICE), GetLinePrice(LINE_PENDING_ENTRY));
+
         }
     }
 
@@ -287,6 +322,15 @@ void CPanelDialog::ResetAllControls()
     m_btn_execute_pending.Text("Place");
     m_btn_execute_pending.ColorBackground(InpDisabledButtonColor);
     m_edit_risk_pending.Text(default_risk_text);
+
+    // این کد دکمه‌های پنل پلکانی را به حالت اولیه برمی‌گرداند
+    m_btn_prep_stairway_buy.Text("Arm Buy");
+    m_btn_prep_stairway_buy.ColorBackground(InpBuyButtonColor);
+    m_btn_prep_stairway_sell.Text("Arm Sell");
+    m_btn_prep_stairway_sell.ColorBackground(InpSellButtonColor);
+    
+    // همچنین پنل اطلاعاتی آن را هم ریست می‌کنیم
+    UpdateStairwayPanel("Idle", 0, 0);
     
     ChartRedraw();
 }
@@ -383,14 +427,44 @@ void CPanelDialog::OnClickPrepPendingSell(void) {
 void CPanelDialog::OnClickExecutePending(void) {
     if(m_is_trade_logic_valid) ExecutePendingTrade();
 }
-void CPanelDialog::OnClickPrepStairwayBuy(void) {
-    if(m_current_state >= STATE_PREP_STAIRWAY_BUY) { ResetToIdleState(); return; }
+// void CPanelDialog::OnClickPrepStairwayBuy(void) {
+//     if(m_current_state >= STATE_PREP_STAIRWAY_BUY) { ResetToIdleState(); return; }
+//     SetupStairwayTrade(STATE_PREP_STAIRWAY_BUY);
+// }
+void CPanelDialog::OnClickPrepStairwayBuy(void) 
+{
+    if(m_current_state >= STATE_PREP_STAIRWAY_BUY) 
+    { 
+        ResetToIdleState(); 
+        UpdateStairwayPanel("Idle", 0, 0); // پنل را ریست کن
+        return; 
+    }
     SetupStairwayTrade(STATE_PREP_STAIRWAY_BUY);
+    // تغییر دکمه و آپدیت اولیه پنل
+    m_btn_prep_stairway_buy.Text("✖ Cancel");
+    m_btn_prep_stairway_buy.ColorBackground(InpCancelButtonColor);
+    UpdateStairwayPanel("Armed. Monitoring breakout...", GetLinePrice(LINE_ENTRY_PRICE), GetLinePrice(LINE_PENDING_ENTRY));
 }
-void CPanelDialog::OnClickPrepStairwaySell(void) {
-    if(m_current_state >= STATE_PREP_STAIRWAY_BUY) { ResetToIdleState(); return; }
-    SetupStairwayTrade(STATE_PREP_STAIRWAY_SELL);
+// void CPanelDialog::OnClickPrepStairwaySell(void) {
+//     if(m_current_state >= STATE_PREP_STAIRWAY_BUY) { ResetToIdleState(); return; }
+//     SetupStairwayTrade(STATE_PREP_STAIRWAY_SELL);
+// }
+
+void CPanelDialog::OnClickPrepStairwaySell(void) 
+{
+    if(m_current_state >= STATE_PREP_STAIRWAY_SELL)
+    { 
+        ResetToIdleState(); 
+        UpdateStairwayPanel("Idle", 0, 0); // پنل را ریست کن
+        return; 
+    }
+    SetupStairwayTrade(STATE_PREP_STAIRWAY_SELL); 
+    // تغییر دکمه و آپدیت اولیه پنل
+    m_btn_prep_stairway_sell.Text("✖ Cancel");
+    m_btn_prep_stairway_sell.ColorBackground(InpCancelButtonColor);
+    UpdateStairwayPanel("Armed. Monitoring breakout...", GetLinePrice(LINE_ENTRY_PRICE), GetLinePrice(LINE_PENDING_ENTRY));
 }
+
 void CPanelDialog::OnRiskEditChange(void) {
     if(m_current_state != STATE_IDLE) UpdateAllLabels();
 }
