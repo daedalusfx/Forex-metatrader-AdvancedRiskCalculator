@@ -80,6 +80,8 @@ void ExecutePendingTrade()
    else
    {
       Alert("Pending Order Failed! Reason: ", (string)result.retcode, " - ", result.comment);
+      ResetToIdleState();
+
    }
 }
 

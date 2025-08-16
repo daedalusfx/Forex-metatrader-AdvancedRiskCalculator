@@ -53,6 +53,7 @@ void ExecuteMarketTrade()
    else
    {
       Alert("Market Order Failed! Reason: ", trade.ResultRetcode(), " - ", trade.ResultComment());
+      ResetToIdleState();
    }
 }
 
