@@ -1,0 +1,38 @@
+name: MQL5 Compile
+
+on: [push] # این ورک‌فلو در هر پوش اجرا می‌شود
+
+jobs:
+  build:
+    runs-on: windows-latest # این اکشن فقط روی ویندوز کار می‌کند
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Compile MQL5 Code
+      uses: fx31337/mql-compile-action@v2
+      with:
+        # مسیر فایل اصلی شما که باید کامپایل شود
+        path: 'AdvancedRiskCalculator.mq5'
+        
+        # مسیری که فایل‌های include (.mqh) در آن قرار دارند
+        # چون فایل‌های شما در ریشه پروژه هستند، '.' کافی است
+        include: '.'
+        
+        # نام فایل لاگ برای مشاهده نتایج کامپایل
+        log-file: 'compile-results.log'
+        
+        # اگر می‌خواهید اخطارها (warnings) را نادیده بگیرید، این را true بگذارید
+        ignore-warnings: false
+        
+        # فعال کردن خروجی بیشتر برای دیباگ کردن
+        verbose: true
+
+    - name: Upload compiled file and logs
+      uses: actions/upload-artifact@v3
+      with:
+        name: compiled-expert-advisor
+        path: |
+          MQL5/Experts/AdvancedRiskCalculator.ex5
+          compile-results.log
