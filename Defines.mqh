@@ -112,7 +112,7 @@ input group "پنل نمایش اطلاعات (Display Canvas)"
 input int InpDisplayPanelX = 260;                      // موقعیت افقی پنل (X)
 input int InpDisplayPanelY = 30;                       // موقعیت عمودی پنل (Y)
 input int InpDisplayPanelW = 250;                      // عرض پنل
-input int InpDisplayPanelH = 250;                      // ارتفاع پنل
+input int InpDisplayPanelH = 280;                      // ارتفاع پنل
 input int InpCanvasMainFontSize = 14;                  // سایز فونت اصلی
 input int InpCanvasSmallFontSize = 12;                 // سایز فونت کوچک
 
