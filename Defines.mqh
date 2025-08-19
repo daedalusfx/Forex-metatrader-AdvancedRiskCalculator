@@ -66,6 +66,9 @@ input color InpOrderButtonColor    = C'30, 144, 255';  // رنگ دکمه ثبت
 input color InpCancelButtonColor   = C'255, 165, 0';   // رنگ دکمه لغو
 input color InpDisabledButtonColor = C'220, 220, 220'; // رنگ دکمه غیرفعال
 
+input color InpActivePresetColor   = C'52, 211, 153';       // رنگ دکمه ریسک فعال (سبز)
+
+
 //--- رنگ‌های فیلد ورودی
 input color InpInputBgColor        = C'255, 255, 255';
 // پس‌زمینه فیلد ورودی (سفید)

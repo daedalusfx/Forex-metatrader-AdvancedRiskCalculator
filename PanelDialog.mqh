@@ -101,6 +101,8 @@ protected:
     void              OnClickRiskPreset1Pending(void);
     void              OnClickRiskPreset2Pending(void);
     void              OnClickRiskPreset3Pending(void);
+    void              UpdateRiskButtonStates(string panel_type);
+
         // --- پایان بخش جدید ---
 };
 
@@ -371,15 +373,17 @@ void CPanelDialog::ResetAllControls()
     m_btn_execute_pending.ColorBackground(InpDisabledButtonColor);
     m_edit_risk_pending.Text(default_risk_text);
 
-    // این کد دکمه‌های پنل پلکانی را به حالت اولیه برمی‌گرداند
     m_btn_prep_stairway_buy.Text("Arm Buy");
     m_btn_prep_stairway_buy.ColorBackground(InpBuyButtonColor);
     m_btn_prep_stairway_sell.Text("Arm Sell");
     m_btn_prep_stairway_sell.ColorBackground(InpSellButtonColor);
-    
-    // همچنین پنل اطلاعاتی آن را هم ریست می‌کنیم
+
     UpdateStairwayPanel("Idle", 0, 0);
-    
+
+    // تنظیم اولیه رنگ دکمه‌های ریسک
+    UpdateRiskButtonStates("market");
+    UpdateRiskButtonStates("pending");
+
     ChartRedraw();
 }
 
@@ -510,10 +514,16 @@ void CPanelDialog::OnClickPrepStairwaySell(void)
     UpdateStairwayPanel("Armed. Monitoring breakout...", GetLinePrice(LINE_BREAKOUT_LEVEL), GetLinePrice(LINE_PENDING_ENTRY));
 }
 
-void CPanelDialog::OnRiskEditChange(void) {
-    if(m_current_state != STATE_IDLE) UpdateAllLabels();
+void CPanelDialog::OnRiskEditChange(void) 
+{
+    if(m_current_state != STATE_IDLE) 
+    {
+        UpdateAllLabels();
+    }
+    // آپدیت کردن رنگ دکمه‌ها
+    UpdateRiskButtonStates("market");
+    UpdateRiskButtonStates("pending");
 }
-
 
 //--- (تابع جدید) بازگردانی ظاهر پنل بر اساس وضعیت ذخیره شده
 void CPanelDialog::RestoreUIFromState(ETradeState restored_state)
@@ -550,7 +560,7 @@ void CPanelDialog::RestoreUIFromState(ETradeState restored_state)
 void CPanelDialog::OnClickRiskPreset1Market(void)
 {
     m_edit_risk_market.Text(DoubleToString(InpRiskPreset1, 1));
-    OnRiskEditChange(); // فراخوانی برای آپدیت محاسبات
+    OnRiskEditChange();
 }
 
 void CPanelDialog::OnClickRiskPreset2Market(void)
@@ -583,5 +593,58 @@ void CPanelDialog::OnClickRiskPreset3Pending(void)
     OnRiskEditChange();
 }
 
+// --- (تابع جدید) آپدیت رنگ دکمه‌های ریسک بر اساس مقدار فیلد ورودی ---
+void CPanelDialog::UpdateRiskButtonStates(string panel_type)
+{
+    double current_risk_value = 0;
+    // مقدار ریسک را از پنل مربوطه بخوان
+    if(panel_type == "market")
+    {
+        current_risk_value = StringToDouble(m_edit_risk_market.Text());
+    }
+    else // pending
+    {
+        current_risk_value = StringToDouble(m_edit_risk_pending.Text());
+    }
+
+    // مقایسه با مقادیر پیش‌فرض و تنظیم رنگ‌ها
+    if(panel_type == "market")
+    {
+        // دکمه ۱
+        if(MathAbs(current_risk_value - InpRiskPreset1) < 0.01)
+            m_btn_risk_preset1_market.ColorBackground(InpActivePresetColor);
+        else
+            m_btn_risk_preset1_market.ColorBackground(InpDisabledButtonColor);
+        // دکمه ۲
+        if(MathAbs(current_risk_value - InpRiskPreset2) < 0.01)
+            m_btn_risk_preset2_market.ColorBackground(InpActivePresetColor);
+        else
+            m_btn_risk_preset2_market.ColorBackground(InpDisabledButtonColor);
+        // دکمه ۳
+        if(MathAbs(current_risk_value - InpRiskPreset3) < 0.01)
+            m_btn_risk_preset3_market.ColorBackground(InpActivePresetColor);
+        else
+            m_btn_risk_preset3_market.ColorBackground(InpDisabledButtonColor);
+    }
+    else // pending
+    {
+        // دکمه ۱
+        if(MathAbs(current_risk_value - InpRiskPreset1) < 0.01)
+            m_btn_risk_preset1_pending.ColorBackground(InpActivePresetColor);
+        else
+            m_btn_risk_preset1_pending.ColorBackground(InpDisabledButtonColor);
+        // دکمه ۲
+        if(MathAbs(current_risk_value - InpRiskPreset2) < 0.01)
+            m_btn_risk_preset2_pending.ColorBackground(InpActivePresetColor);
+        else
+            m_btn_risk_preset2_pending.ColorBackground(InpDisabledButtonColor);
+        // دکمه ۳
+        if(MathAbs(current_risk_value - InpRiskPreset3) < 0.01)
+            m_btn_risk_preset3_pending.ColorBackground(InpActivePresetColor);
+        else
+            m_btn_risk_preset3_pending.ColorBackground(InpDisabledButtonColor);
+    }
+    ChartRedraw();
+}
 
 #endif // PANELDIALOG_MQH
