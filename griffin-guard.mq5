@@ -35,7 +35,7 @@ CSpreadAtrAnalysis g_SpreadAtrPanel;
 //+------------------------------------------------------------------+
 int OnInit()
 {
-   if(!ExtDialog.Create(0, "Advanced Risk Calculator v2.1", 0, 10, 30))
+   if(!ExtDialog.Create(0, "griffin-guard-beta", 0, 10, 30))
    {
       return(INIT_FAILED);
    }
