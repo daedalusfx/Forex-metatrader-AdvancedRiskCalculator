@@ -35,7 +35,6 @@ CSpreadAtrAnalysis g_SpreadAtrPanel;
 //+------------------------------------------------------------------+
 int OnInit()
 {
-   // --- 1. راه‌اندازی UI ---
    if(!ExtDialog.Create(0, "Advanced Risk Calculator v2.1", 0, 10, 30))
    {
       return(INIT_FAILED);
@@ -47,10 +46,8 @@ int OnInit()
    }
    g_SpreadAtrPanel.Initialize(CORNER_RIGHT_UPPER, 15, 30);
 
-   // --- 2. مقداردهی اولیه متغیرهای اصلی ---
    InitializeMagicNumber();
    trade.SetExpertMagicNumber(g_magic_number);
-
    if(InpEnablePropRules)
    {
       g_prop_rules_active = true;
@@ -94,29 +91,42 @@ int OnInit()
    // --- (کد نهایی) بازگردانی کامل وضعیت پلکانی ---
    if(g_stairway_restored_state >= STATE_PREP_STAIRWAY_BUY)
    {
-       // ۱. بازآفرینی تمام خطوط روی چارت
+       Print("OnInit --> ورود به بلوک بازیابی وضعیت پلکانی.");
+
+       // ۱. (اصلاح شد) ابتدا وضعیت پنل را بازیابی می‌کنیم
+       // این کار باعث می‌شود GetCurrentState() وضعیت صحیح را برگرداند
+       ExtDialog.RestoreUIFromState(g_stairway_restored_state);
+       
+       // ۲. (اصلاح شد) حالا که پنل وضعیت صحیح را می‌داند، خطوط را ایجاد می‌کنیم
        CreateTradeLines(); 
        
-       // ۲. جابجایی خطوط به قیمت‌های ذخیره شده
-       if(g_stairway_restored_breakout_price > 0) ObjectMove(0, LINE_BREAKOUT_LEVEL, 0, 0, g_stairway_restored_breakout_price);
+       Print("OnInit --> قیمت خط شکست قبل از جابجایی: ", g_stairway_restored_breakout_price);
+       if(g_stairway_restored_breakout_price > 0)
+       {
+           if(ObjectFind(0, LINE_BREAKOUT_LEVEL) != -1)
+           {
+               ObjectMove(0, LINE_BREAKOUT_LEVEL, 0, 0, g_stairway_restored_breakout_price);
+               Print("OnInit --> دستور ObjectMove برای خط شکست اجرا شد.");
+           }
+           else
+           {
+               Print("OnInit --> خطا: شیء LINE_BREAKOUT_LEVEL روی چارت پیدا نشد! (این خطا دیگر نباید رخ دهد)");
+           }
+       }
+       
        if(g_stairway_restored_pending_entry_price > 0) ObjectMove(0, LINE_PENDING_ENTRY, 0, 0, g_stairway_restored_pending_entry_price);
        if(g_stairway_restored_sl_price > 0) ObjectMove(0, LINE_STOP_LOSS, 0, 0, g_stairway_restored_sl_price);
        if(g_stairway_restored_tp_price > 0) ObjectMove(0, LINE_TAKE_PROFIT, 0, 0, g_stairway_restored_tp_price);
-
-       // ۳. بازگردانی وضعیت ظاهری پنل
-       ExtDialog.RestoreUIFromState(g_stairway_restored_state);
        
-       // ۴. آپدیت تمام لیبل‌ها و نمایشگر بر اساس خطوط جدید
-       UpdateAllLabels(); 
-       
-       Print("Stairway trade state and all lines restored successfully. State: ", EnumToString(g_stairway_restored_state));
+       // ۳. آپدیت نهایی لیبل‌ها
+       UpdateAllLabels();
+       Print("OnInit --> بازیابی حالت پلکانی و خطوط با موفقیت انجام شد.");
    }
-   // --- 3. به‌روزرسانی نهایی نمایشگر ---
+   
    UpdateDisplayData();
    ChartRedraw();
    return(INIT_SUCCEEDED);
 }
-
 //+------------------------------------------------------------------+
 //| Expert deinitialization function                                 |
 //+------------------------------------------------------------------+

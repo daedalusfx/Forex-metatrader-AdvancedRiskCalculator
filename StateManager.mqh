@@ -18,11 +18,11 @@ void SaveStateToFile()
     int file_handle = FileOpen(file_name, FILE_WRITE | FILE_BIN);
     if(file_handle == INVALID_HANDLE)
     {
-        Print("Error opening state file for writing! Error: ", GetLastError());
+        Print("خطا در باز کردن فایل برای نوشتن! Error: ", GetLastError());
         return;
     }
 
-    // --- Section 1: Save Prop Firm Rules Variables ---
+    // ... (بخش مربوط به قوانین پراپ بدون تغییر باقی می‌ماند) ...
     FileWriteDouble(file_handle, g_initial_balance);
     FileWriteDouble(file_handle, g_peak_equity);
     FileWriteDouble(file_handle, g_start_of_day_base);
@@ -34,25 +34,26 @@ void SaveStateToFile()
         FileWriteArray(file_handle, g_daily_profits, 0, array_size);
     }
     
-    // --- Section 2: Save Stairway Trade State ---
     ETradeState current_state = ExtDialog.GetCurrentState();
     FileWriteInteger(file_handle, (int)current_state, INT_VALUE);
     FileWriteLong(file_handle, (long)g_stairway_step1_ticket);
     FileWriteLong(file_handle, (long)g_stairway_breakout_candle_time);
     FileWriteDouble(file_handle, g_stairway_total_lot);
     
-    // --- Section 3: Save Line Prices ---
+    // --- لاگ‌گیری اصلی اینجا اضافه شده است ---
     if(current_state >= STATE_PREP_STAIRWAY_BUY)
     {
-        FileWriteDouble(file_handle, GetLinePrice(LINE_BREAKOUT_LEVEL)); // (اصلاح شد) Breakout level price
-        FileWriteDouble(file_handle, GetLinePrice(LINE_PENDING_ENTRY));   // Pending entry price
+        double breakout_price_to_save = GetLinePrice(LINE_BREAKOUT_LEVEL);
+        Print("SaveStateToFile --> ذخیره قیمت خط شکست: ", breakout_price_to_save); // <-- لاگ ۱
+
+        FileWriteDouble(file_handle, breakout_price_to_save);
+        FileWriteDouble(file_handle, GetLinePrice(LINE_PENDING_ENTRY));
         FileWriteDouble(file_handle, GetLinePrice(LINE_STOP_LOSS));
         FileWriteDouble(file_handle, GetLinePrice(LINE_TAKE_PROFIT));
     }
 
     FileClose(file_handle);
 }
-
 //+------------------------------------------------------------------+
 //|               Restore vital variables from binary file           |
 //+------------------------------------------------------------------+
@@ -66,10 +67,10 @@ bool LoadStateFromFile()
     int file_handle = FileOpen(file_name, FILE_READ | FILE_BIN);
     if(file_handle == INVALID_HANDLE)
     {
-        return false; 
+        return false;
     }
 
-    // --- Section 1: Restore Prop Firm Rules Variables ---
+    // ... (بخش مربوط به قوانین پراپ بدون تغییر باقی می‌ماند) ...
     g_initial_balance = FileReadDouble(file_handle);
     g_peak_equity = FileReadDouble(file_handle);
     g_start_of_day_base = FileReadDouble(file_handle);
@@ -81,7 +82,6 @@ bool LoadStateFromFile()
         FileReadArray(file_handle, g_daily_profits, 0, array_size);
     }
     
-    // --- Section 2: Restore Stairway Trade State ---
     if(!FileIsEnding(file_handle))
     {
         g_stairway_restored_state = (ETradeState)FileReadInteger(file_handle, INT_VALUE);
@@ -89,11 +89,11 @@ bool LoadStateFromFile()
         g_stairway_breakout_candle_time = FileReadLong(file_handle);
         g_stairway_total_lot = FileReadDouble(file_handle);
         
-        // --- Section 3: Restore Line Prices ---
         if(g_stairway_restored_state >= STATE_PREP_STAIRWAY_BUY && !FileIsEnding(file_handle))
         {
-            // This is the corrected block
             g_stairway_restored_breakout_price = FileReadDouble(file_handle);
+            Print("LoadStateFromFile --> خواندن قیمت خط شکست از فایل: ", g_stairway_restored_breakout_price); // <-- لاگ ۲
+
             g_stairway_restored_pending_entry_price = FileReadDouble(file_handle);
             g_stairway_restored_sl_price = FileReadDouble(file_handle);
             g_stairway_restored_tp_price = FileReadDouble(file_handle);
@@ -101,8 +101,7 @@ bool LoadStateFromFile()
     }
 
     FileClose(file_handle);
-    Print("EA state for account ", account_number, " on ", _Symbol, " loaded successfully.");
+    Print("LoadStateFromFile --> فایل وضعیت با موفقیت بارگذاری شد.");
     return true;
 }
-
 #endif // STATEMANAGER_MQH
