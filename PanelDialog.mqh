@@ -28,6 +28,9 @@ private:
     CButton           m_btn_prep_market_sell;
     CLabel            m_lbl_risk_market;
     CEdit             m_edit_risk_market;
+    CButton           m_btn_risk_preset1_market;
+    CButton           m_btn_risk_preset2_market;
+    CButton           m_btn_risk_preset3_market;
     CButton           m_btn_execute_market;
 
     //--- کنترل‌های بخش Pending
@@ -37,6 +40,9 @@ private:
     CButton           m_btn_prep_pending_sell;
     CLabel            m_lbl_risk_pending;
     CEdit             m_edit_risk_pending;
+    CButton           m_btn_risk_preset1_pending;
+    CButton           m_btn_risk_preset2_pending;
+    CButton           m_btn_risk_preset3_pending;
     CButton           m_btn_execute_pending;
 
     //--- کنترل‌های بخش Stairway
@@ -88,6 +94,14 @@ protected:
     void              OnClickPrepStairwayBuy(void);
     void              OnClickPrepStairwaySell(void);
     void              OnRiskEditChange(void);
+        // --- توابع جدید برای مدیریت کلیک دکمه‌های ریسک ---
+    void              OnClickRiskPreset1Market(void);
+    void              OnClickRiskPreset2Market(void);
+    void              OnClickRiskPreset3Market(void);
+    void              OnClickRiskPreset1Pending(void);
+    void              OnClickRiskPreset2Pending(void);
+    void              OnClickRiskPreset3Pending(void);
+        // --- پایان بخش جدید ---
 };
 
 //--- نقشه رویدادها
@@ -102,6 +116,12 @@ EVENT_MAP_BEGIN(CPanelDialog)
     ON_EVENT(ON_CHANGE, m_edit_risk_pending, OnRiskEditChange)
     ON_EVENT(ON_CLICK, m_btn_prep_stairway_buy, OnClickPrepStairwayBuy)
     ON_EVENT(ON_CLICK, m_btn_prep_stairway_sell, OnClickPrepStairwaySell)
+    ON_EVENT(ON_CLICK, m_btn_risk_preset1_market, OnClickRiskPreset1Market)
+    ON_EVENT(ON_CLICK, m_btn_risk_preset2_market, OnClickRiskPreset2Market)
+    ON_EVENT(ON_CLICK, m_btn_risk_preset3_market, OnClickRiskPreset3Market)
+    ON_EVENT(ON_CLICK, m_btn_risk_preset1_pending, OnClickRiskPreset1Pending)
+    ON_EVENT(ON_CLICK, m_btn_risk_preset2_pending, OnClickRiskPreset2Pending)
+    ON_EVENT(ON_CLICK, m_btn_risk_preset3_pending, OnClickRiskPreset3Pending)
 EVENT_MAP_END(CAppDialog)
 
 //--- سازنده و مخرب
@@ -133,13 +153,12 @@ bool CPanelDialog::CreateMarketPanel(int x, int y)
     
     if(!m_lbl_title_market.Create(m_chart_id, "MarketTitle", m_subwin, x+10, y+5, x+210, y+25)) return false;
     m_lbl_title_market.Text("Market Execution");
-    m_lbl_title_market.Color(InpTextColor); // تنظیم رنگ متن
+    m_lbl_title_market.Color(InpTextColor);
     if(!Add(m_lbl_title_market)) return false;
 
     int current_x = x + InpButtonPadding;
     int y_pos = y + 30;
     int button_width = 65;
-
     if(!m_btn_prep_market_buy.Create(m_chart_id, "PrepMarketBuy", m_subwin, current_x, y_pos, current_x + button_width, y_pos + InpButtonHeight)) return false;
     if(!Add(m_btn_prep_market_buy)) return false;
     current_x += button_width + InpButtonGap;
@@ -155,12 +174,28 @@ bool CPanelDialog::CreateMarketPanel(int x, int y)
     if(!m_lbl_risk_market.Create(m_chart_id, "RiskMarketLbl", m_subwin, x+10, y_pos, x+60, y_pos+20)) return false;
     string risk_label_text = (InpRiskMode == RISK_PERCENT) ? "Risk %:" : "Risk " + AccountInfoString(ACCOUNT_CURRENCY) + ":";
     m_lbl_risk_market.Text(risk_label_text);
-    m_lbl_risk_market.Color(InpTextColor); // تنظیم رنگ متن
+    m_lbl_risk_market.Color(InpTextColor);
     if(!Add(m_lbl_risk_market)) return false;
 
     if(!m_edit_risk_market.Create(m_chart_id, "RiskMarketEdit", m_subwin, x+70, y_pos-2, x+130, y_pos+23)) return false;
     if(!Add(m_edit_risk_market)) return false;
     
+    int preset_btn_width = 25;
+    int preset_btn_x = x + 135;
+    if(!m_btn_risk_preset1_market.Create(m_chart_id, "RiskPreset1_M", m_subwin, preset_btn_x, y_pos, preset_btn_x + preset_btn_width, y_pos + InpButtonHeight-5)) return false;
+    m_btn_risk_preset1_market.Text(DoubleToString(InpRiskPreset1,1));
+    if(!Add(m_btn_risk_preset1_market)) return false;
+    preset_btn_x += preset_btn_width + InpButtonGap;
+
+    if(!m_btn_risk_preset2_market.Create(m_chart_id, "RiskPreset2_M", m_subwin, preset_btn_x, y_pos, preset_btn_x + preset_btn_width, y_pos + InpButtonHeight-5)) return false;
+    m_btn_risk_preset2_market.Text(DoubleToString(InpRiskPreset2,1));
+    if(!Add(m_btn_risk_preset2_market)) return false;
+    preset_btn_x += preset_btn_width + InpButtonGap;
+
+    if(!m_btn_risk_preset3_market.Create(m_chart_id, "RiskPreset3_M", m_subwin, preset_btn_x, y_pos, preset_btn_x + preset_btn_width, y_pos + InpButtonHeight-5)) return false;
+    m_btn_risk_preset3_market.Text(DoubleToString(InpRiskPreset3,1));
+    if(!Add(m_btn_risk_preset3_market)) return false;
+
     return true;
 }
 
@@ -173,13 +208,12 @@ bool CPanelDialog::CreatePendingPanel(int x, int y)
     
     if(!m_lbl_title_pending.Create(m_chart_id, "PendingTitle", m_subwin, x+10, y+5, x+210, y+25)) return false;
     m_lbl_title_pending.Text("Pending Order");
-    m_lbl_title_pending.Color(InpTextColor); // تنظیم رنگ متن
+    m_lbl_title_pending.Color(InpTextColor);
     if(!Add(m_lbl_title_pending)) return false;
 
     int current_x = x + InpButtonPadding;
     int y_pos = y + 30;
     int button_width = 65;
-
     if(!m_btn_prep_pending_buy.Create(m_chart_id, "PrepPendingBuy", m_subwin, current_x, y_pos, current_x + button_width, y_pos + InpButtonHeight)) return false;
     if(!Add(m_btn_prep_pending_buy)) return false;
     current_x += button_width + InpButtonGap;
@@ -195,11 +229,27 @@ bool CPanelDialog::CreatePendingPanel(int x, int y)
     if(!m_lbl_risk_pending.Create(m_chart_id, "RiskPendingLbl", m_subwin, x+10, y_pos, x+60, y_pos+20)) return false;
     string risk_label_text = (InpRiskMode == RISK_PERCENT) ? "Risk %:" : "Risk " + AccountInfoString(ACCOUNT_CURRENCY) + ":";
     m_lbl_risk_pending.Text(risk_label_text);
-    m_lbl_risk_pending.Color(InpTextColor); // تنظیم رنگ متن
+    m_lbl_risk_pending.Color(InpTextColor);
     if(!Add(m_lbl_risk_pending)) return false;
 
     if(!m_edit_risk_pending.Create(m_chart_id, "RiskPendingEdit", m_subwin, x+70, y_pos-2, x+130, y_pos+23)) return false;
     if(!Add(m_edit_risk_pending)) return false;
+
+    int preset_btn_width = 25;
+    int preset_btn_x = x + 135;
+    if(!m_btn_risk_preset1_pending.Create(m_chart_id, "RiskPreset1_P", m_subwin, preset_btn_x, y_pos, preset_btn_x + preset_btn_width, y_pos + InpButtonHeight-5)) return false;
+    m_btn_risk_preset1_pending.Text(DoubleToString(InpRiskPreset1,1));
+    if(!Add(m_btn_risk_preset1_pending)) return false;
+    preset_btn_x += preset_btn_width + InpButtonGap;
+
+    if(!m_btn_risk_preset2_pending.Create(m_chart_id, "RiskPreset2_P", m_subwin, preset_btn_x, y_pos, preset_btn_x + preset_btn_width, y_pos + InpButtonHeight-5)) return false;
+    m_btn_risk_preset2_pending.Text(DoubleToString(InpRiskPreset2,1));
+    if(!Add(m_btn_risk_preset2_pending)) return false;
+    preset_btn_x += preset_btn_width + InpButtonGap;
+
+    if(!m_btn_risk_preset3_pending.Create(m_chart_id, "RiskPreset3_P", m_subwin, preset_btn_x, y_pos, preset_btn_x + preset_btn_width, y_pos + InpButtonHeight-5)) return false;
+    m_btn_risk_preset3_pending.Text(DoubleToString(InpRiskPreset3,1));
+    if(!Add(m_btn_risk_preset3_pending)) return false;
 
     return true;
 }
@@ -492,6 +542,45 @@ void CPanelDialog::RestoreUIFromState(ETradeState restored_state)
         UpdateStairwayPanel("Restored. Monitoring breakout...", GetLinePrice(LINE_BREAKOUT_LEVEL), GetLinePrice(LINE_PENDING_ENTRY));
     }
     ChartRedraw();
+}
+
+
+// --- توابع مدیریت کلیک دکمه‌های ریسک از پیش‌تعیین‌شده ---
+
+void CPanelDialog::OnClickRiskPreset1Market(void)
+{
+    m_edit_risk_market.Text(DoubleToString(InpRiskPreset1, 1));
+    OnRiskEditChange(); // فراخوانی برای آپدیت محاسبات
+}
+
+void CPanelDialog::OnClickRiskPreset2Market(void)
+{
+    m_edit_risk_market.Text(DoubleToString(InpRiskPreset2, 1));
+    OnRiskEditChange();
+}
+
+void CPanelDialog::OnClickRiskPreset3Market(void)
+{
+    m_edit_risk_market.Text(DoubleToString(InpRiskPreset3, 1));
+    OnRiskEditChange();
+}
+
+void CPanelDialog::OnClickRiskPreset1Pending(void)
+{
+    m_edit_risk_pending.Text(DoubleToString(InpRiskPreset1, 1));
+    OnRiskEditChange();
+}
+
+void CPanelDialog::OnClickRiskPreset2Pending(void)
+{
+    m_edit_risk_pending.Text(DoubleToString(InpRiskPreset2, 1));
+    OnRiskEditChange();
+}
+
+void CPanelDialog::OnClickRiskPreset3Pending(void)
+{
+    m_edit_risk_pending.Text(DoubleToString(InpRiskPreset3, 1));
+    OnRiskEditChange();
 }
 
 

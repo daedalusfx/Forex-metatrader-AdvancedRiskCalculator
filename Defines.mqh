@@ -35,6 +35,9 @@ input double InpRiskPercent = 1.0;                     // [درصد ریسک] م
 input double InpMaxMarginUsagePercent = 90.0;          // حداکثر مارجین مجاز: برای جلوگیری از خطا، معامله‌ای که بیش از این درصد از مارجین آزاد را اشغال کند باز نمی‌شود
 input ulong  InpSlippage    = 10;                        // حداکثر لغزش (Slippage) مجاز برای معاملات Market (به پوینت)
 
+input double InpRiskPreset1 = 0.5; // [درصد ریسک ثابت ۱]
+input double InpRiskPreset2 = 1.0; // [درصد ریسک ثابت ۲]
+input double InpRiskPreset3 = 2.0; // [درصد ریسک ثابت ۳]
 
 input group "تنظیمات حد سود (Take Profit)"
 input ETakeProfitMode InpTPMode = TP_RR_RATIO;         // حالت حد سود: دستی (TP_MANUAL) یا بر اساس نسبت ریسک به ریوارد (TP_RR_RATIO)
