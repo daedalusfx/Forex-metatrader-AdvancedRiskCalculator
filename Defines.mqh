@@ -96,6 +96,12 @@ datetime        g_stairway_breakout_candle_time = 0;
 double          g_stairway_total_lot = 0;
 
 
+double          g_stairway_restored_breakout_price = 0; // نام از entry به breakout تغییر کرد
+double          g_stairway_restored_pending_entry_price = 0; // <-- متغیر جدید
+double          g_stairway_restored_sl_price = 0;
+double          g_stairway_restored_tp_price = 0;
+
+
 
 input group "محافظ پراپ فرم (Prop Firm Guardian)"
 input bool   InpEnablePropRules        = true;              // [فعالسازی] آیا محافظ پراپ فعال باشد؟

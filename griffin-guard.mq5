@@ -91,12 +91,26 @@ int OnInit()
       }
    }
 
+   // --- (کد نهایی) بازگردانی کامل وضعیت پلکانی ---
    if(g_stairway_restored_state >= STATE_PREP_STAIRWAY_BUY)
    {
-       ExtDialog.RestoreUIFromState(g_stairway_restored_state);
-       Print("Stairway trade state restored successfully. Current state: ", EnumToString(g_stairway_restored_state));
-   }
+       // ۱. بازآفرینی تمام خطوط روی چارت
+       CreateTradeLines(); 
+       
+       // ۲. جابجایی خطوط به قیمت‌های ذخیره شده
+       if(g_stairway_restored_breakout_price > 0) ObjectMove(0, LINE_ENTRY_PRICE, 0, 0, g_stairway_restored_breakout_price);
+       if(g_stairway_restored_pending_entry_price > 0) ObjectMove(0, LINE_PENDING_ENTRY, 0, 0, g_stairway_restored_pending_entry_price); // <-- (کد جدید)
+       if(g_stairway_restored_sl_price > 0) ObjectMove(0, LINE_STOP_LOSS, 0, 0, g_stairway_restored_sl_price);
+       if(g_stairway_restored_tp_price > 0) ObjectMove(0, LINE_TAKE_PROFIT, 0, 0, g_stairway_restored_tp_price);
 
+       // ۳. بازگردانی وضعیت ظاهری پنل
+       ExtDialog.RestoreUIFromState(g_stairway_restored_state);
+       
+       // ۴. آپدیت تمام لیبل‌ها و نمایشگر بر اساس خطوط جدید
+       UpdateAllLabels(); 
+       
+       Print("Stairway trade state and all lines restored successfully. State: ", EnumToString(g_stairway_restored_state));
+   }
    // --- 3. به‌روزرسانی نهایی نمایشگر ---
    UpdateDisplayData();
    ChartRedraw();
