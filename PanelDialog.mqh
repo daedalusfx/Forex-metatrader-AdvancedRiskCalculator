@@ -69,6 +69,8 @@ public:
     void              SetPendingUIMode(ETradeState state);
     void              SetExecuteButtonState();
     void              UpdateStairwayPanel(string status, double breakout_price, double entry_price);
+    void              RestoreUIFromState(ETradeState restored_state); 
+
 
 protected:
     //--- ایجاد کنترل‌ها
@@ -468,5 +470,38 @@ void CPanelDialog::OnClickPrepStairwaySell(void)
 void CPanelDialog::OnRiskEditChange(void) {
     if(m_current_state != STATE_IDLE) UpdateAllLabels();
 }
+
+
+//--- (تابع جدید) بازگردانی ظاهر پنل بر اساس وضعیت ذخیره شده
+void CPanelDialog::RestoreUIFromState(ETradeState restored_state)
+{
+    if(restored_state < STATE_PREP_STAIRWAY_BUY) return; // فقط برای حالت‌های پلکانی اجرا شود
+    
+    SetCurrentState(restored_state);
+    
+    if(restored_state == STATE_PREP_STAIRWAY_BUY || restored_state == STATE_STAIRWAY_WAITING_FOR_CONFIRMATION)
+    {
+        m_btn_prep_stairway_buy.Text("✖ Cancel");
+        m_btn_prep_stairway_buy.ColorBackground(InpCancelButtonColor);
+    }
+    else if(restored_state == STATE_PREP_STAIRWAY_SELL)
+    {
+        m_btn_prep_stairway_sell.Text("✖ Cancel");
+        m_btn_prep_stairway_sell.ColorBackground(InpCancelButtonColor);
+    }
+    
+    // آپدیت پنل اطلاعاتی بر اساس وضعیت
+    if(restored_state == STATE_STAIRWAY_WAITING_FOR_CONFIRMATION)
+    {
+        UpdateStairwayPanel("Restored. Waiting candle close...", GetLinePrice(LINE_ENTRY_PRICE), GetLinePrice(LINE_PENDING_ENTRY));
+    }
+    else
+    {
+        UpdateStairwayPanel("Restored. Monitoring breakout...", GetLinePrice(LINE_ENTRY_PRICE), GetLinePrice(LINE_PENDING_ENTRY));
+    }
+    
+    ChartRedraw();
+}
+
 
 #endif // PANELDIALOG_MQH

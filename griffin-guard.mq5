@@ -91,6 +91,12 @@ int OnInit()
       }
    }
 
+   if(g_stairway_restored_state >= STATE_PREP_STAIRWAY_BUY)
+   {
+       ExtDialog.RestoreUIFromState(g_stairway_restored_state);
+       Print("Stairway trade state restored successfully. Current state: ", EnumToString(g_stairway_restored_state));
+   }
+
    // --- 3. به‌روزرسانی نهایی نمایشگر ---
    UpdateDisplayData();
    ChartRedraw();

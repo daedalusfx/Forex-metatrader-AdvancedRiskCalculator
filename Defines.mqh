@@ -90,7 +90,13 @@ double          g_entry_price = 0;
 double          g_tp_price = 0;
 long g_magic_number = 0;
 
-// --- Prop Firm Rules (NEW) ---
+ETradeState     g_stairway_restored_state = STATE_IDLE; // برای بازیابی وضعیت بعد از ری‌استارت
+ulong           g_stairway_step1_ticket = 0;
+datetime        g_stairway_breakout_candle_time = 0;
+double          g_stairway_total_lot = 0;
+
+
+
 input group "محافظ پراپ فرم (Prop Firm Guardian)"
 input bool   InpEnablePropRules        = true;              // [فعالسازی] آیا محافظ پراپ فعال باشد؟
 input double InpMaxDailyDrawdownPercent  = 5.0;             // حداکثر افت سرمایه روزانه (درصد)

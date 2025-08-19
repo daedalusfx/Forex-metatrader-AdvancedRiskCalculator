@@ -8,10 +8,7 @@
 #include <Trade/Trade.mqh> // <--- اصلاح کلیدی
 #include "SharedLogic.mqh"
 
-// --- متغیرهای سراسری برای مدیریت وضعیت استراتژی پلکانی ---
-static datetime g_stairway_breakout_candle_time = 0;
-static ulong    g_stairway_step1_ticket = 0;
-static double   g_stairway_total_lot = 0;
+
 
 // --- تابع آماده‌سازی (بدون تغییر) ---
 void SetupStairwayTrade(ETradeState newState)
