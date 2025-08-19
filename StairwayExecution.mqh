@@ -99,35 +99,33 @@ bool PlaceStairwayStep1_Pending()
 void ManageStairwayExecution()
 {
     ETradeState state = ExtDialog.GetCurrentState();
-
-    // فاز اول: نظارت برای شکست قیمت و ارسال پله ۱
     if (state == STATE_PREP_STAIRWAY_BUY || state == STATE_PREP_STAIRWAY_SELL)
     {
-        double breakout_price = GetLinePrice(LINE_ENTRY_PRICE);
+        // اینجا قیمت از خط شکست جدید خوانده می‌شود
+        double breakout_price = GetLinePrice(LINE_BREAKOUT_LEVEL);
         if (breakout_price <= 0) return;
-        
+
         double current_price = (state == STATE_PREP_STAIRWAY_BUY) ? SymbolInfoDouble(_Symbol, SYMBOL_ASK) : SymbolInfoDouble(_Symbol, SYMBOL_BID);
         bool is_breakout = (state == STATE_PREP_STAIRWAY_BUY && current_price > breakout_price) || (state == STATE_PREP_STAIRWAY_SELL && current_price < breakout_price);
-        
+
         if (is_breakout)
         {
             if(PlaceStairwayStep1_Pending())
             {
                 g_stairway_breakout_candle_time = iTime(_Symbol, 0, 0);
                 ExtDialog.SetCurrentState(STATE_STAIRWAY_WAITING_FOR_CONFIRMATION);
-                ExtDialog.UpdateStairwayPanel("Breakout! Waiting candle close...", GetLinePrice(LINE_ENTRY_PRICE), GetLinePrice(LINE_PENDING_ENTRY));
+                // اینجا قیمت خط شکست جدید به پنل ارسال می‌شود
+                ExtDialog.UpdateStairwayPanel("Breakout! Waiting candle close...", GetLinePrice(LINE_BREAKOUT_LEVEL), GetLinePrice(LINE_PENDING_ENTRY));
                 Alert("شکست قیمت شناسایی شد! سفارش معلق پله اول ارسال شد. در انتظار بسته شدن کندل برای تایید...");
             }
             else
             {
-                ResetToIdleState(); // اگر ارسال پله اول ناموفق بود، همه چیز را ریست کن
+                ResetToIdleState();
             }
         }
     }
-    // فاز دوم: بررسی کلوز کندل و ارسال پله ۲
     else if (state == STATE_STAIRWAY_WAITING_FOR_CONFIRMATION)
     {
-        // اگر کندل جدیدی باز شده باشد (یعنی کندل شکست بسته شده است)
         if (iTime(_Symbol, 0, 0) > g_stairway_breakout_candle_time)
         {
             bool is_step1_triggered = false;
@@ -135,15 +133,11 @@ void ManageStairwayExecution()
             {
                 is_step1_triggered = true;
             }
-            
-            double breakout_candle_close = iClose(_Symbol, 0, 1); // قیمت بسته شدن کندل قبلی (کندل شکست)
-            double breakout_price = GetLinePrice(LINE_ENTRY_PRICE);
-            
-            bool is_buy_setup = (GetLinePrice(LINE_STOP_LOSS) < breakout_price);
 
-            // شرط تایید: آیا کندل در جهت شکست بسته شده است؟
-            bool is_confirmed = (is_buy_setup && breakout_candle_close > breakout_price) ||
-                                (!is_buy_setup && breakout_candle_close < breakout_price);
+            double breakout_candle_close = iClose(_Symbol, 0, 1);
+            double breakout_price = GetLinePrice(LINE_BREAKOUT_LEVEL); // و اینجا
+            bool is_buy_setup = (GetLinePrice(LINE_STOP_LOSS) < breakout_price);
+            bool is_confirmed = (is_buy_setup && breakout_candle_close > breakout_price) || (!is_buy_setup && breakout_candle_close < breakout_price);
 
             if(is_confirmed)
             {

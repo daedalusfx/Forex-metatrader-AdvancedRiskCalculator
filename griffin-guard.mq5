@@ -98,8 +98,8 @@ int OnInit()
        CreateTradeLines(); 
        
        // ۲. جابجایی خطوط به قیمت‌های ذخیره شده
-       if(g_stairway_restored_breakout_price > 0) ObjectMove(0, LINE_ENTRY_PRICE, 0, 0, g_stairway_restored_breakout_price);
-       if(g_stairway_restored_pending_entry_price > 0) ObjectMove(0, LINE_PENDING_ENTRY, 0, 0, g_stairway_restored_pending_entry_price); // <-- (کد جدید)
+       if(g_stairway_restored_breakout_price > 0) ObjectMove(0, LINE_BREAKOUT_LEVEL, 0, 0, g_stairway_restored_breakout_price);
+       if(g_stairway_restored_pending_entry_price > 0) ObjectMove(0, LINE_PENDING_ENTRY, 0, 0, g_stairway_restored_pending_entry_price);
        if(g_stairway_restored_sl_price > 0) ObjectMove(0, LINE_STOP_LOSS, 0, 0, g_stairway_restored_sl_price);
        if(g_stairway_restored_tp_price > 0) ObjectMove(0, LINE_TAKE_PROFIT, 0, 0, g_stairway_restored_tp_price);
 

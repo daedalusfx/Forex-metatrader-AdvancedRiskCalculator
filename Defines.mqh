@@ -77,6 +77,7 @@ input ENUM_LINE_STYLE InpLineStyle = STYLE_DASHDOT;     // استایل خطوط
 input int   InpLineWidth         = 1;                 // ضخامت خطوط
 
 //--- UI Element Names for Lines
+#define LINE_BREAKOUT_LEVEL      "RiskCalc_BreakoutLine"   // (کد جدید) خط شکست برای استراتژی پلکانی
 #define LINE_ENTRY_PRICE         "RiskCalc_EntryLine"
 #define LINE_STOP_LOSS           "RiskCalc_StopLossLine"
 #define LINE_TAKE_PROFIT         "RiskCalc_TakeProfitLine"

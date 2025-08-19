@@ -271,23 +271,19 @@ void CPanelDialog::HandleDragEvent(const string &dragged_object)
     ETradeState state = GetCurrentState();
     bool is_stairway = (state == STATE_PREP_STAIRWAY_BUY || state == STATE_PREP_STAIRWAY_SELL);
 
-    // If we are in automatic R:R mode
     if(InpTPMode == TP_RR_RATIO)
     {
-        // For stairway strategy, update if SL or Breakout lines are moved
-        if(is_stairway && (dragged_object == LINE_ENTRY_PRICE || dragged_object == LINE_STOP_LOSS))
+        // اینجا شرط کشیدن خط، با شناسه جدید چک می‌شود
+        if(is_stairway && (dragged_object == LINE_BREAKOUT_LEVEL || dragged_object == LINE_STOP_LOSS))
         {
-            UpdateDynamicLines(); // (Corrected)
+            UpdateDynamicLines();
         }
-        // For regular pending orders
         else if(!is_stairway && !InpAutoEntryPending && (dragged_object == LINE_ENTRY_PRICE || dragged_object == LINE_STOP_LOSS))
         {
-            UpdateDynamicLines(); // (Corrected)
+            UpdateDynamicLines();
             UpdateStairwayPanel("Armed. Monitoring breakout...", GetLinePrice(LINE_ENTRY_PRICE), GetLinePrice(LINE_PENDING_ENTRY));
-
         }
     }
-
     UpdateAllLabels();
 }
 
@@ -433,38 +429,35 @@ void CPanelDialog::OnClickExecutePending(void) {
 //     if(m_current_state >= STATE_PREP_STAIRWAY_BUY) { ResetToIdleState(); return; }
 //     SetupStairwayTrade(STATE_PREP_STAIRWAY_BUY);
 // }
+
 void CPanelDialog::OnClickPrepStairwayBuy(void) 
 {
     if(m_current_state >= STATE_PREP_STAIRWAY_BUY) 
     { 
-        ResetToIdleState(); 
-        UpdateStairwayPanel("Idle", 0, 0); // پنل را ریست کن
-        return; 
+        ResetToIdleState();
+        UpdateStairwayPanel("Idle", 0, 0);
+        return;
     }
     SetupStairwayTrade(STATE_PREP_STAIRWAY_BUY);
-    // تغییر دکمه و آپدیت اولیه پنل
     m_btn_prep_stairway_buy.Text("✖ Cancel");
     m_btn_prep_stairway_buy.ColorBackground(InpCancelButtonColor);
-    UpdateStairwayPanel("Armed. Monitoring breakout...", GetLinePrice(LINE_ENTRY_PRICE), GetLinePrice(LINE_PENDING_ENTRY));
+    // اینجا قیمت خط جدید به پنل ارسال می‌شود
+    UpdateStairwayPanel("Armed. Monitoring breakout...", GetLinePrice(LINE_BREAKOUT_LEVEL), GetLinePrice(LINE_PENDING_ENTRY));
 }
-// void CPanelDialog::OnClickPrepStairwaySell(void) {
-//     if(m_current_state >= STATE_PREP_STAIRWAY_BUY) { ResetToIdleState(); return; }
-//     SetupStairwayTrade(STATE_PREP_STAIRWAY_SELL);
-// }
 
 void CPanelDialog::OnClickPrepStairwaySell(void) 
 {
     if(m_current_state >= STATE_PREP_STAIRWAY_SELL)
     { 
-        ResetToIdleState(); 
-        UpdateStairwayPanel("Idle", 0, 0); // پنل را ریست کن
-        return; 
+        ResetToIdleState();
+        UpdateStairwayPanel("Idle", 0, 0);
+        return;
     }
     SetupStairwayTrade(STATE_PREP_STAIRWAY_SELL); 
-    // تغییر دکمه و آپدیت اولیه پنل
     m_btn_prep_stairway_sell.Text("✖ Cancel");
     m_btn_prep_stairway_sell.ColorBackground(InpCancelButtonColor);
-    UpdateStairwayPanel("Armed. Monitoring breakout...", GetLinePrice(LINE_ENTRY_PRICE), GetLinePrice(LINE_PENDING_ENTRY));
+    // اینجا هم قیمت خط جدید به پنل ارسال می‌شود
+    UpdateStairwayPanel("Armed. Monitoring breakout...", GetLinePrice(LINE_BREAKOUT_LEVEL), GetLinePrice(LINE_PENDING_ENTRY));
 }
 
 void CPanelDialog::OnRiskEditChange(void) {
@@ -475,10 +468,9 @@ void CPanelDialog::OnRiskEditChange(void) {
 //--- (تابع جدید) بازگردانی ظاهر پنل بر اساس وضعیت ذخیره شده
 void CPanelDialog::RestoreUIFromState(ETradeState restored_state)
 {
-    if(restored_state < STATE_PREP_STAIRWAY_BUY) return; // فقط برای حالت‌های پلکانی اجرا شود
-    
+    if(restored_state < STATE_PREP_STAIRWAY_BUY) return;
+
     SetCurrentState(restored_state);
-    
     if(restored_state == STATE_PREP_STAIRWAY_BUY || restored_state == STATE_STAIRWAY_WAITING_FOR_CONFIRMATION)
     {
         m_btn_prep_stairway_buy.Text("✖ Cancel");
@@ -489,17 +481,16 @@ void CPanelDialog::RestoreUIFromState(ETradeState restored_state)
         m_btn_prep_stairway_sell.Text("✖ Cancel");
         m_btn_prep_stairway_sell.ColorBackground(InpCancelButtonColor);
     }
-    
-    // آپدیت پنل اطلاعاتی بر اساس وضعیت
+
+    // اینجا هم قیمت خط جدید برای نمایش در پنل خوانده می‌شود
     if(restored_state == STATE_STAIRWAY_WAITING_FOR_CONFIRMATION)
     {
-        UpdateStairwayPanel("Restored. Waiting candle close...", GetLinePrice(LINE_ENTRY_PRICE), GetLinePrice(LINE_PENDING_ENTRY));
+        UpdateStairwayPanel("Restored. Waiting candle close...", GetLinePrice(LINE_BREAKOUT_LEVEL), GetLinePrice(LINE_PENDING_ENTRY));
     }
     else
     {
-        UpdateStairwayPanel("Restored. Monitoring breakout...", GetLinePrice(LINE_ENTRY_PRICE), GetLinePrice(LINE_PENDING_ENTRY));
+        UpdateStairwayPanel("Restored. Monitoring breakout...", GetLinePrice(LINE_BREAKOUT_LEVEL), GetLinePrice(LINE_PENDING_ENTRY));
     }
-    
     ChartRedraw();
 }
 

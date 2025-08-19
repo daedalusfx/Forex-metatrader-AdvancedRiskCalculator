@@ -44,8 +44,8 @@ void SaveStateToFile()
     // --- Section 3: Save Line Prices ---
     if(current_state >= STATE_PREP_STAIRWAY_BUY)
     {
-        FileWriteDouble(file_handle, GetLinePrice(LINE_ENTRY_PRICE));      // Breakout level price
-        FileWriteDouble(file_handle, GetLinePrice(LINE_PENDING_ENTRY));    // Pending entry price
+        FileWriteDouble(file_handle, GetLinePrice(LINE_BREAKOUT_LEVEL)); // (اصلاح شد) Breakout level price
+        FileWriteDouble(file_handle, GetLinePrice(LINE_PENDING_ENTRY));   // Pending entry price
         FileWriteDouble(file_handle, GetLinePrice(LINE_STOP_LOSS));
         FileWriteDouble(file_handle, GetLinePrice(LINE_TAKE_PROFIT));
     }
