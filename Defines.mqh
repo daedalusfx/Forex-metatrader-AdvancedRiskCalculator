@@ -48,7 +48,7 @@ input bool InpAutoEntryPending = false;                // حرکت هماهنگ 
 
 input group "ابعاد و چیدمان پنل اصلی"
 input int PanelWidth = 240;                            // عرض پنل اصلی
-input int PanelHigth = 350;                            // ارتفاع پنل اصلی
+input int PanelHigth = 400;                            // ارتفاع پنل اصلی
 input int InpButtonWidth   = 70;                       // عرض دکمه‌ها
 input int InpButtonHeight  = 25;                       // ارتفاع دکمه‌ها
 input int InpButtonPadding = 8;                        // فاصله کنترل‌ها از لبه پنل
@@ -88,6 +88,12 @@ input int   InpLineWidth         = 1;                 // ضخامت خطوط
 #define LINE_STOP_LOSS           "RiskCalc_StopLossLine"
 #define LINE_TAKE_PROFIT         "RiskCalc_TakeProfitLine"
 #define LINE_PENDING_ENTRY       "RiskCalc_PendingEntryLine"
+
+input group "تنظیمات لیبل خطوط معاملاتی"
+input ENUM_BASE_CORNER InpLinesInfoCorner = CORNER_LEFT_UPPER; // گوشه نمایش لیبل‌ها
+input int InpLinesInfoXOffset = 15;      // فاصله افقی لیبل‌ها از گوشه
+input int InpLinesInfoYOffset = 430;     // فاصله عمودی لیبل‌ها از گوشه
+
 
 //--- Global Variables
 CTrade          trade;

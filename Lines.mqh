@@ -21,14 +21,19 @@ void CreateLine(string name, string text, double price, color clr, bool selectab
     ObjectMove(0, name, 0, 0, price);
 }
 
-void CreateStyledLabel(string name, string text, datetime time, double price, color bg_color, color text_color)
+// --- (اصلاح شد) این تابع اکنون مختصات X/Y را برای موقعیت‌یابی ثابت می‌پذیرد ---
+void CreateStyledLabel(string name, string text, int x_dist, int y_dist, color bg_color, color text_color, ENUM_BASE_CORNER corner=CORNER_LEFT_UPPER)
 {
     string label_name = name + "_label";
     if(ObjectFind(0, label_name) < 0)
     {
-        ObjectCreate(0, label_name, OBJ_BUTTON, 0, time, price);
+        // به جای ObjectMove، از همان ابتدا موقعیت را بر اساس گوشه چارت تنظیم می‌کنیم
+        ObjectCreate(0, label_name, OBJ_BUTTON, 0, 0, 0);
         ObjectSetInteger(0, label_name, OBJPROP_SELECTABLE, false);
         ObjectSetInteger(0, label_name, OBJPROP_STATE, true);
+        ObjectSetInteger(0, label_name, OBJPROP_CORNER, corner); // <-- (مهم) تنظیم گوشه مبدأ
+        ObjectSetInteger(0, label_name, OBJPROP_XDISTANCE, x_dist); // <-- (مهم) فاصله X
+        ObjectSetInteger(0, label_name, OBJPROP_YDISTANCE, y_dist); // <-- (مهم) فاصله Y
         ObjectSetInteger(0, label_name, OBJPROP_ANCHOR, ANCHOR_LEFT);
         ObjectSetInteger(0, label_name, OBJPROP_XSIZE, 240);
         ObjectSetInteger(0, label_name, OBJPROP_YSIZE, 20);
@@ -36,10 +41,11 @@ void CreateStyledLabel(string name, string text, datetime time, double price, co
         ObjectSetInteger(0, label_name, OBJPROP_FONTSIZE, 8);
         ObjectSetInteger(0, label_name, OBJPROP_BACK, true);
     }
+    // آپدیت متن و رنگ بدون تغییر باقی می‌ماند
     ObjectSetString(0, label_name, OBJPROP_TEXT, text);
     ObjectSetInteger(0, label_name, OBJPROP_BGCOLOR, bg_color);
     ObjectSetInteger(0, label_name, OBJPROP_COLOR, text_color);
-    ObjectMove(0, label_name, 0, time, price);
+    // دیگر نیازی به ObjectMove نیست چون موقعیت ثابت است
 }
 
 void DeleteTradeLines()
@@ -153,26 +159,36 @@ void CreateTradeLines()
 void UpdateLineInfoLabels()
 {
    if (ExtDialog.GetCurrentState() == STATE_IDLE) return;
+   
    ETradeState state = ExtDialog.GetCurrentState();
    bool is_stairway = (state == STATE_PREP_STAIRWAY_BUY || state == STATE_PREP_STAIRWAY_SELL);
+
    double sl_price = GetLinePrice(LINE_STOP_LOSS);
    double tp_price = GetLinePrice(LINE_TAKE_PROFIT);
    double entry_for_calc = 0;
+   
+   // --- (کد جدید) محاسبه موقعیت Y به صورت پلکانی ---
+   int current_y = InpLinesInfoYOffset;
+   int line_height = 22; // فاصله بین هر لیبل
+   // ---
 
    if (is_stairway)
    {
-        // اینجا قیمت از خط شکست جدید خوانده می‌شود
         double breakout_price = GetLinePrice(LINE_BREAKOUT_LEVEL);
         double pending_entry_price = GetLinePrice(LINE_PENDING_ENTRY);
         entry_for_calc = pending_entry_price;
+        
         if(breakout_price == 0 || pending_entry_price == 0 || sl_price == 0) return;
-        datetime time_pos = TimeCurrent() + (PeriodSeconds() * 15);
-
-        // و لیبل برای خط شکست جدید ساخته می‌شود
+        
+        // (اصلاح شد) لیبل خط شکست با موقعیت ثابت
         string breakout_text = StringFormat("BREAKOUT TRIGGER | %.5f", breakout_price);
-        CreateStyledLabel(LINE_BREAKOUT_LEVEL, breakout_text, time_pos, breakout_price, InpWarningColor, C'255,255,255');
+        CreateStyledLabel(LINE_BREAKOUT_LEVEL, breakout_text, InpLinesInfoXOffset, current_y, InpWarningColor, C'255,255,255', InpLinesInfoCorner);
+        current_y += line_height; // به خط بعدی برو
+        
+        // (اصلاح شد) لیبل خط ورود دستی با موقعیت ثابت
         string pending_text = StringFormat("MANUAL ENTRY | %.5f", pending_entry_price);
-        CreateStyledLabel(LINE_PENDING_ENTRY, pending_text, time_pos, pending_entry_price, InpBuyButtonColor, C'255,255,255');
+        CreateStyledLabel(LINE_PENDING_ENTRY, pending_text, InpLinesInfoXOffset, current_y, InpBuyButtonColor, C'255,255,255', InpLinesInfoCorner);
+        current_y += line_height; // به خط بعدی برو
    }
    else
    {
@@ -180,20 +196,24 @@ void UpdateLineInfoLabels()
         entry_for_calc = entry_price;
         if(entry_price == 0 || sl_price == 0) return;
    }
-
+   
    double lot_size = 0, risk_in_money = 0;
    CalculateLotSize(entry_for_calc, sl_price, lot_size, risk_in_money);
-   datetime time_pos = TimeCurrent() + (PeriodSeconds() * 15);
+
    double pip_value = GetPipValue();
    double sl_pips = (pip_value > 0) ? MathAbs(sl_price - entry_for_calc) / pip_value : 0;
    string sl_text = StringFormat("STOP LOSS | Risk $%.2f (%.1f Pips)", risk_in_money, sl_pips);
-   CreateStyledLabel(LINE_STOP_LOSS, sl_text, time_pos, sl_price, InpStopLineColor, C'255,255,255');
+   // (اصلاح شد) لیبل SL با موقعیت ثابت
+   CreateStyledLabel(LINE_STOP_LOSS, sl_text, InpLinesInfoXOffset, current_y, InpStopLineColor, C'255,255,255', InpLinesInfoCorner);
+   current_y += line_height; // به خط بعدی برو
+
    if(tp_price > 0)
    {
       double tp_pips = (pip_value > 0) ? MathAbs(tp_price - entry_for_calc) / pip_value : 0;
       double rr_ratio = (sl_pips > 0.1) ? tp_pips / sl_pips : 0;
       string tp_text = StringFormat("TAKE PROFIT (Auto) | R:R %.1f:1", rr_ratio);
-      CreateStyledLabel(LINE_TAKE_PROFIT, tp_text, time_pos, tp_price, InpProfitLineColor, C'255,255,255');
+      // (اصلاح شد) لیبل TP با موقعیت ثابت
+      CreateStyledLabel(LINE_TAKE_PROFIT, tp_text, InpLinesInfoXOffset, current_y, InpProfitLineColor, C'255,255,255', InpLinesInfoCorner);
    }
 }
 #endif // LINES_MQH

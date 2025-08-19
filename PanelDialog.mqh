@@ -24,6 +24,7 @@ private:
     //--- کنترل‌های بخش Market
     CPanel            m_panel_market;
     CLabel            m_lbl_title_market;
+    CLabel            m_lbl_market_status; 
     CButton           m_btn_prep_market_buy;
     CButton           m_btn_prep_market_sell;
     CLabel            m_lbl_risk_market;
@@ -36,6 +37,7 @@ private:
     //--- کنترل‌های بخش Pending
     CPanel            m_panel_pending;
     CLabel            m_lbl_title_pending;
+    CLabel            m_lbl_pending_status;
     CButton           m_btn_prep_pending_buy;
     CButton           m_btn_prep_pending_sell;
     CLabel            m_lbl_risk_pending;
@@ -76,6 +78,7 @@ public:
     void              SetExecuteButtonState();
     void              UpdateStairwayPanel(string status, double breakout_price, double entry_price);
     void              RestoreUIFromState(ETradeState restored_state); 
+    void              SetStatusMessage(string text, string panel_type, color text_color);
 
 
 protected:
@@ -139,8 +142,8 @@ bool CPanelDialog::Create(const long chart, const string name, const int subwin,
     ObjectSetInteger(m_chart_id, m_name + "_background", OBJPROP_BGCOLOR, InpPanelBackgroundColor);
 
     if(!CreateMarketPanel(10, 10)) return(false);
-    if(!CreatePendingPanel(10, 105)) return(false);
-    if(!CreateStairwayPanel(10, 200)) return(false); 
+    if(!CreatePendingPanel(10, 130)) return(false); 
+    if(!CreateStairwayPanel(10, 250)) return(false); 
 
     ResetAllControls();
     return(true);
@@ -149,7 +152,8 @@ bool CPanelDialog::Create(const long chart, const string name, const int subwin,
 //--- ایجاد پنل Market با رنگ متن اصلاح شده
 bool CPanelDialog::CreateMarketPanel(int x, int y)
 {
-    if(!m_panel_market.Create(m_chart_id, "MarketPanel", m_subwin, x, y, x + 220, y + 85)) return false;
+    // ارتفاع پنل برای جای دادن خط وضعیت جدید افزایش یافت
+    if(!m_panel_market.Create(m_chart_id, "MarketPanel", m_subwin, x, y, x + 220, y + 110)) return false;
     m_panel_market.ColorBackground(InpSubPanelColor);
     if(!Add(m_panel_market)) return false;
     
@@ -198,13 +202,24 @@ bool CPanelDialog::CreateMarketPanel(int x, int y)
     m_btn_risk_preset3_market.Text(DoubleToString(InpRiskPreset3,1));
     if(!Add(m_btn_risk_preset3_market)) return false;
 
+    // --- (اصلاح شد) ایجاد لیبل وضعیت در خط اختصاصی خودش ---
+    y_pos += 25; // رفتن به خط جدید
+    if(!m_lbl_market_status.Create(m_chart_id, "MarketStatusLbl", m_subwin, x + 10, y_pos, x + 210, y_pos + 20)) return false;
+    m_lbl_market_status.Text("");
+    m_lbl_market_status.Color(InpWarningColor);
+    ObjectSetInteger(m_chart_id, m_lbl_market_status.Name(), OBJPROP_ANCHOR, ANCHOR_LEFT);
+    m_lbl_market_status.Font("Tahoma Bold");
+    m_lbl_market_status.FontSize(9);
+    if(!Add(m_lbl_market_status)) return false;
+    // --- پایان بخش اصلاح شده ---
+
     return true;
 }
 
-//--- ایجاد پنل Pending با رنگ متن اصلاح شده
 bool CPanelDialog::CreatePendingPanel(int x, int y)
 {
-    if(!m_panel_pending.Create(m_chart_id, "PendingPanel", m_subwin, x, y, x + 220, y + 85)) return false;
+    // ارتفاع پنل برای جای دادن خط وضعیت جدید افزایش یافت
+    if(!m_panel_pending.Create(m_chart_id, "PendingPanel", m_subwin, x, y, x + 220, y + 110)) return false;
     m_panel_pending.ColorBackground(InpSubPanelColor);
     if(!Add(m_panel_pending)) return false;
     
@@ -252,10 +267,20 @@ bool CPanelDialog::CreatePendingPanel(int x, int y)
     if(!m_btn_risk_preset3_pending.Create(m_chart_id, "RiskPreset3_P", m_subwin, preset_btn_x, y_pos, preset_btn_x + preset_btn_width, y_pos + InpButtonHeight-5)) return false;
     m_btn_risk_preset3_pending.Text(DoubleToString(InpRiskPreset3,1));
     if(!Add(m_btn_risk_preset3_pending)) return false;
+    
+    // --- (اصلاح شد) ایجاد لیبل وضعیت در خط اختصاصی خودش ---
+    y_pos += 25; // رفتن به خط جدید
+    if(!m_lbl_pending_status.Create(m_chart_id, "PendingStatusLbl", m_subwin, x + 10, y_pos, x + 210, y_pos + 20)) return false;
+    m_lbl_pending_status.Text("");
+    m_lbl_pending_status.Color(InpWarningColor);
+    ObjectSetInteger(m_chart_id, m_lbl_pending_status.Name(), OBJPROP_ANCHOR, ANCHOR_LEFT);
+    m_lbl_pending_status.Font("Tahoma Bold");
+    m_lbl_pending_status.FontSize(9);
+    if(!Add(m_lbl_pending_status)) return false;
+    // --- پایان بخش اصلاح شده ---
 
     return true;
 }
-
 //--- ایجاد پنل Stairway با رنگ متن اصلاح شده
 bool CPanelDialog::CreateStairwayPanel(int x, int y)
 {
@@ -643,6 +668,28 @@ void CPanelDialog::UpdateRiskButtonStates(string panel_type)
             m_btn_risk_preset3_pending.ColorBackground(InpActivePresetColor);
         else
             m_btn_risk_preset3_pending.ColorBackground(InpDisabledButtonColor);
+    }
+    ChartRedraw();
+}
+
+
+// --- (تابع جدید) نمایش پیام وضعیت روی پنل مربوطه ---
+void CPanelDialog::SetStatusMessage(string text, string panel_type, color text_color)
+{
+    if(panel_type == "market")
+    {
+        m_lbl_market_status.Text(text);
+        m_lbl_market_status.Color(text_color);
+    }
+    else if(panel_type == "pending")
+    {
+        m_lbl_pending_status.Text(text);
+        m_lbl_pending_status.Color(text_color);
+    }
+    // برای استراتژی پلکانی، از پنل خود آن استفاده می‌کنیم
+    else if(panel_type == "stairway")
+    {
+         UpdateStairwayPanel(text, GetLinePrice(LINE_BREAKOUT_LEVEL), GetLinePrice(LINE_PENDING_ENTRY));
     }
     ChartRedraw();
 }

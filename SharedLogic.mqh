@@ -144,16 +144,62 @@ bool IsTradeRequestSafe(double lot_size, ENUM_ORDER_TYPE order_type, double pric
 void ValidateTradeLogicAndUpdateUI()
 {
     if(ExtDialog.GetCurrentState() == STATE_IDLE) return;
-    double entry = GetLinePrice(LINE_ENTRY_PRICE);
+
+    // --- بخش ۱: تعیین متغیرهای ورودی بر اساس وضعیت فعلی ---
+    ETradeState state = ExtDialog.GetCurrentState();
+    double entry_for_calc = 0;
     double sl = GetLinePrice(LINE_STOP_LOSS);
-    bool is_valid = false;
-    bool isBuy = (ExtDialog.GetCurrentState() == STATE_PREP_MARKET_BUY || ExtDialog.GetCurrentState() == STATE_PREP_PENDING_BUY || ExtDialog.GetCurrentState() == STATE_PREP_STAIRWAY_BUY);
-   
-    if(entry > 0 && sl > 0)
+    string current_panel = ""; // برای ارسال به تابع نمایش پیام
+
+    if (state == STATE_PREP_STAIRWAY_BUY || state == STATE_PREP_STAIRWAY_SELL)
     {
-        if(isBuy && sl < entry) is_valid = true;
-        else if(!isBuy && sl > entry) is_valid = true;
+        entry_for_calc = GetLinePrice(LINE_PENDING_ENTRY);
+        current_panel = "stairway";
     }
+    else if (state == STATE_PREP_MARKET_BUY || state == STATE_PREP_MARKET_SELL)
+    {
+        entry_for_calc = GetLinePrice(LINE_ENTRY_PRICE);
+        current_panel = "market";
+    }
+    else // Pending
+    {
+        entry_for_calc = GetLinePrice(LINE_ENTRY_PRICE);
+        current_panel = "pending";
+    }
+
+    // --- بخش ۲: اعتبارسنجی اولیه (وجود خطوط و موقعیت SL) ---
+    bool is_valid = false;
+    bool isBuy = (state == STATE_PREP_MARKET_BUY || state == STATE_PREP_PENDING_BUY || state == STATE_PREP_STAIRWAY_BUY);
+    if(entry_for_calc > 0 && sl > 0)
+    {
+        if((isBuy && sl < entry_for_calc) || (!isBuy && sl > entry_for_calc))
+        {
+            is_valid = true;
+        }
+        else
+        {
+            ExtDialog.SetStatusMessage("Invalid SL Position", current_panel, InpDangerColor);
+        }
+    }
+
+    // --- بخش ۳: اعتبارسنجی حجم لات (فقط اگر بخش ۲ معتبر بود) ---
+    if(is_valid)
+    {
+        double lot_size = 0, risk_in_money = 0;
+        // اگر محاسبه لات موفقیت‌آمیز نبود یا حجم صفر بود، معامله نامعتبر است
+        if(!CalculateLotSize(entry_for_calc, sl, lot_size, risk_in_money) || lot_size <= 0)
+        {
+            is_valid = false;
+            ExtDialog.SetStatusMessage("Lot Size Too Small", current_panel, InpDangerColor);
+        }
+        else
+        {
+            // اگر همه چیز درست بود، پیام "آماده" را نمایش بده
+            ExtDialog.SetStatusMessage("Ready", current_panel, InpSafeColor);
+        }
+    }
+
+    // --- بخش نهایی: به‌روزرسانی وضعیت و دکمه اجرا ---
     ExtDialog.SetTradeLogicValid(is_valid);
     ExtDialog.SetExecuteButtonState();
 }
