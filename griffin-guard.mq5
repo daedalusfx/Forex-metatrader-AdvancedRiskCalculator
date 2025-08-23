@@ -36,6 +36,7 @@ CSpreadAtrAnalysis g_SpreadAtrPanel;
 //+------------------------------------------------------------------+
 int OnInit()
 {
+    InitializeGUI();
    // --- راه‌اندازی ماژول ATM و پنل Qt ---
    SL_Backup_File = MQLInfoString(MQL_PROGRAM_NAME) + "_" + (string)ChartID() + "_SL_Backup.dat";
    LoadOriginalSLs(); // این تابع باید در SharedLogic.mqh باشد
@@ -140,7 +141,7 @@ int OnInit()
 void OnDeinit(const int reason)
 {
    // --- بستن ماژول ATM و پنل Qt ---
-   ClosePanel();
+   FinalizeGUI(); 
    SaveOriginalSLs(); // این تابع باید در SharedLogic.mqh باشد
    EventKillTimer();
    SaveStateToFile();
@@ -188,12 +189,12 @@ void ToggleTradeManagerVisibility()
 {
     if(g_is_trade_manager_visible)
     {
-        ShowPanel();
+        ShowGUIPanel();
 
     }
     else
     {
-        ClosePanel();
+        HideGUIPanel();
 
     }
     ChartRedraw();

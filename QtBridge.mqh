@@ -22,8 +22,10 @@
 
 // --- وارد کردن توابع DLL
 #import "GriffinATM\\libGriffinATM.dll"
-void ShowPanel();
-void ClosePanel();
+void InitializeGUI();
+void FinalizeGUI();
+void ShowGUIPanel();
+void HideGUIPanel();
 void SendDataToUI(char& data[]);
 int GetNextCommand(char &data[], int max_len);
 void SendFeedbackToUI(string jsonData);

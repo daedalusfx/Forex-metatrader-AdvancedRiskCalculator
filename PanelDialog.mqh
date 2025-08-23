@@ -54,6 +54,7 @@ private:
     CButton           m_btn_prep_stairway_sell;
     CLabel            m_lbl_stairway_status; // برچسب برای نمایش وضعیت
     CLabel            m_lbl_stairway_prices; // برچسب برای نمایش قیمت‌ها
+    CButton           m_btn_toggle_manager;
 
 public:
                       CPanelDialog(void);
@@ -699,14 +700,14 @@ void CPanelDialog::SetStatusMessage(string text, string panel_type, color text_c
     }
     ChartRedraw();
 }
-void CPanelDialog::OnClickToggleManager(void) // panel
+void CPanelDialog::OnClickToggleManager(void)
 {
     g_is_trade_manager_visible = !g_is_trade_manager_visible;
     
-    // (جدید) تغییر متن دکمه بر اساس وضعیت
+
     if(g_is_trade_manager_visible)
     {
-        m_btn_toggle_manager.Text("close atm");
+        m_btn_toggle_manager.Text("Close ATM");
         m_btn_toggle_manager.ColorBackground(InpCancelButtonColor);
     }
     else
