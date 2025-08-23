@@ -140,6 +140,7 @@ input int InpDisplayPanelW = 250;                      // عرض پنل
 input int InpDisplayPanelH = 280;                      // ارتفاع پنل
 input int InpCanvasMainFontSize = 14;                  // سایز فونت اصلی
 input int InpCanvasSmallFontSize = 12;                 // سایز فونت کوچک
+bool g_is_trade_manager_visible = false; // var
 
 input group "رنگ‌بندی پنل نمایش اطلاعات"
 // --- رنگ‌های طرح جدید (مدرن و تیره) ---

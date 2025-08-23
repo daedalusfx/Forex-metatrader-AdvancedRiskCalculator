@@ -185,6 +185,22 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
    }
 }
 
+void ToggleTradeManagerVisibility()
+{
+    if(g_is_trade_manager_visible)
+    {
+        ShowPanel();
+
+    }
+    else
+    {
+        ClosePanel();
+
+    }
+    ChartRedraw();
+}
+
+
 //+------------------------------------------------------------------+
 //|   محاسبه و نقاشی تمام داده‌های نمایشی (نسخه کامل و صحیح)         |
 //+------------------------------------------------------------------+
