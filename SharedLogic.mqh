@@ -237,6 +237,36 @@ void ResetToIdleState()
     ExtDialog.ResetAllControls();
 }
 
+
+
+// ==================================================================
+// === بخش ۱: توابع کمکی برای مدیریت وضعیت ATM ===
+// ==================================================================
+bool WasRuleApplied(ulong ticket){for(int i=0;i<ArraySize(g_appliedRulesTickets);i++)if(g_appliedRulesTickets[i]==ticket)return true;return false;}
+void MarkRuleAsApplied(ulong ticket){if(WasRuleApplied(ticket))return;int size=ArraySize(g_appliedRulesTickets);ArrayResize(g_appliedRulesTickets,size+1);g_appliedRulesTickets[size]=ticket;}
+bool IsAtmEnabled(ulong ticket){for(int i=0; i<ArraySize(g_atmEnabledTickets); i++)if(g_atmEnabledTickets[i] == ticket) return true;return false;}
+int FindSLIndex(ulong ticket){for(int i=0;i<ArraySize(g_slTickets);i++)if(g_slTickets[i]==ticket)return i;return -1;}
+
+// ==================================================================
+// === بخش ۲: توابع مدیریت فایل و ذخیره‌سازی ===
+// ==================================================================
+void SaveOriginalSLs(){int h=FileOpen(SL_Backup_File,FILE_WRITE|FILE_BIN);if(h==INVALID_HANDLE)return;int c=ArraySize(g_slTickets);FileWriteInteger(h,c);if(c>0){FileWriteArray(h,g_slTickets,0,c);FileWriteArray(h,g_slValues,0,c);}FileClose(h);}
+void LoadOriginalSLs(){ArrayFree(g_slTickets);ArrayFree(g_slValues);int h=FileOpen(SL_Backup_File,FILE_READ|FILE_BIN);if(h==INVALID_HANDLE)return;int c=FileReadInteger(h);if(c>0){ArrayResize(g_slTickets,c);ArrayResize(g_slValues,c);FileReadArray(h,g_slTickets,0,c);FileReadArray(h,g_slValues,0,c);}FileClose(h);}
+void StoreOriginalSL(ulong ticket,double sl){if(sl==0.0)return;int i=FindSLIndex(ticket);if(i==-1){int s=ArraySize(g_slTickets);ArrayResize(g_slTickets,s+1);ArrayResize(g_slValues,s+1);g_slTickets[s]=ticket;g_slValues[s]=sl;}else{g_slValues[i]=sl;}SaveOriginalSLs();}
+
+// ==================================================================
+// === بخش ۳: توابع کمکی عمومی و解析 JSON ===
+// ==================================================================
+int VolumeDigits(string s){double st=SymbolInfoDouble(s,SYMBOL_VOLUME_STEP);if(st==1.0)return 0;string str=DoubleToString(st);int p=StringFind(str,".");if(p<0)return 0;return StringLen(str)-p-1;}
+string GetJsonString(string j,string k){string s="\""+k+"\":\"";int sp=StringFind(j,s);if(sp<0)return"";sp+=StringLen(s);int ep=StringFind(j,"\"",sp);if(ep<0)return"";return StringSubstr(j,sp,ep-sp);}
+ulong GetJsonUlong(string j,string k){string s="\""+k+"\":";int sp=StringFind(j,s);if(sp<0)return 0;sp+=StringLen(s);int ep=StringFind(j,",",sp);if(ep<0)ep=StringFind(j,"}",sp);if(ep<0)return 0;return(ulong)StringToInteger(StringSubstr(j,sp,ep-sp));}
+double GetJsonDouble(string j,string k){string s="\""+k+"\":";int sp=StringFind(j,s);if(sp<0)return 0.0;sp+=StringLen(s);int ep=StringFind(j,",",sp);if(ep<0)ep=StringFind(j,"}",sp);if(ep<0)return 0.0;return StringToDouble(StringSubstr(j,sp,ep-sp));}
+bool GetJsonBool(string j,string k){string s="\""+k+"\":";int sp=StringFind(j,s);if(sp<0)return false;sp+=StringLen(s);int ep=StringFind(j,",",sp);if(ep<0)ep=StringFind(j,"}",sp);if(ep<0)return false;string v=StringSubstr(j,sp,ep-sp);StringTrimRight(v);StringTrimLeft(v);return(v=="true");}
+
+
+
+
+
 void InitializeMagicNumber()
 {
     long account_number = AccountInfoInteger(ACCOUNT_LOGIN);

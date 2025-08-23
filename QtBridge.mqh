@@ -1,7 +1,6 @@
 //+------------------------------------------------------------------+
 //|                                                  QtBridge.mqh |
-//|        A Reusable Module for Qt Panel Communication (v1.0)       |
-//|                                     Created by Gemini & User       |
+//|         A Reusable Module for Qt Panel Communication (v1.0)      |
 //+------------------------------------------------------------------+
 #ifndef QT_BRIDGE_MQH
 #define QT_BRIDGE_MQH
@@ -10,29 +9,18 @@
     =================================================================
     === مستندات ماژول QtBridge ===
     =================================================================
-    این ماژول یک پل ارتباطی کامل برای اتصال هر اکسپرت به یک پنل Qt است.
-
-    **نیازمندی‌ها برای اکسپرتی که از این ماژول استفاده می‌کند:**
-
-    1.  **متغیرهای گلوبال:** اکسپرت باید متغیرهای زیر را تعریف کرده باشد:
-        - CTrade trade;
-        - long g_magic_number;
-        - ulong g_slTickets[];
-        - double g_slValues[];
-        - string SL_Backup_File;
-
-    2.  **توابع ضروری:** اکسپرت باید توابع زیر را پیاده‌سازی کرده باشد:
-        - LiveTradeStats CalculateLiveTradeStats();
-        - void SaveOriginalSLs();
-
-    3.  **فراخوانی‌ها:**
-        - در OnInit(): فراخوانی ShowPanel() و EventSetTimer(1).
-        - در OnDeinit(): فراخوانی ClosePanel() و EventKillTimer().
+    این ماژول یک پل ارتباطی کامل برای اتصال هر اکسپرت به پنل ATM Qt است.
+    اکسپرتی که از این ماژول استفاده می‌کند باید فایل Defines.mqh را include کرده باشد
+    و توابع کمکی مانند CalculateLiveTradeStats و SaveOriginalSLs را پیاده‌سازی کرده باشد.
 */
 
-// ==================================================================
-// === بخش ۱: وارد کردن توابع DLL ===
-// ==================================================================
+
+#include "Defines.mqh"
+#include "SharedLogic.mqh"
+
+
+
+// --- وارد کردن توابع DLL
 #import "GriffinATM\\libGriffinATM.dll"
 void ShowPanel();
 void ClosePanel();
@@ -41,38 +29,51 @@ int GetNextCommand(char &data[], int max_len);
 void SendFeedbackToUI(string jsonData);
 #import
 
+// --- Forward declarations for functions defined later in this file
+void ProcessQtCommand(string command);
+string GenerateQtPanelJSON();
+void ProcessAutoManagement();
 
 
 
-ulong g_slTickets[];
-double g_slValues[];
-string SL_Backup_File;
-
-// ==================================================================
-// === بخش ۲: توابع کمکی (Helper Functions) ===
-// ==================================================================
-// این توابع کمکی فقط در این ماژول استفاده می‌شوند
-namespace QtBridge_Helpers
+void OnTimer()
 {
-    string GetJsonString(string json,string key){string sk="\""+key+"\":\"";int sp=StringFind(json,sk);if(sp<0)return"";sp+=StringLen(sk);int ep=StringFind(json,"\"",sp);if(ep<0)return"";return StringSubstr(json,sp,ep-sp);}
-    ulong GetJsonUlong(string json, string key){string sk="\""+key+"\":";int sp=StringFind(json,sk);if(sp<0)return 0;sp+=StringLen(sk);int ep=StringFind(json,",",sp);if(ep<0)ep=StringFind(json,"}",sp);if(ep<0)return 0;return(ulong)StringToInteger(StringSubstr(json,sp,ep-sp));}
-    int FindSLIndex(ulong ticket){for(int i=0;i<ArraySize(g_slTickets);i++)if(g_slTickets[i]==ticket)return i;return -1;}
-    void StoreOriginalSL(ulong ticket,double sl_value){if(sl_value==0.0)return;int index=FindSLIndex(ticket);if(index==-1){int size=ArraySize(g_slTickets);ArrayResize(g_slTickets,size+1);ArrayResize(g_slValues,size+1);g_slTickets[size]=ticket;g_slValues[size]=sl_value;}else{g_slValues[index]=sl_value;}SaveOriginalSLs();}
+    string jsonData = GenerateQtPanelJSON();
+    char jsonDataAnsi[];
+    if(StringToCharArray(jsonData, jsonDataAnsi, 0, WHOLE_ARRAY, CP_ACP) > 0) SendDataToUI(jsonDataAnsi);
+    
+    char cmd_buffer[1024];
+    int cmd_len;
+    while((cmd_len = GetNextCommand(cmd_buffer, 1024)) > 0)
+    {
+        ProcessQtCommand(CharArrayToString(cmd_buffer, 0, cmd_len, CP_ACP));
+    }
+    
+    ProcessAutoManagement(); // اجرای منطق ATM
 }
-// Using namespace to avoid function name collisions
-using namespace QtBridge_Helpers;
 
-// ==================================================================
-// === بخش ۳: هسته اصلی ارتباط (OnTimer و توابع مرتبط) ===
-// ==================================================================
 
-//+------------------------------------------------------------------+
-//| ارسال بازخورد به پنل Qt
-//+------------------------------------------------------------------+
-void SendFeedbackToQt(string status, string message, ulong ticket = 0)
+void SendFeedbackToQt(string status, string message, ulong ticket=0){string p=StringFormat("{\"status\":\"%s\",\"message\":\"%s\",\"ticket\":%s}",status,message,(string)ticket);SendFeedbackToUI(p);}
+
+
+string GenerateQtPanelJSON()
 {
-    string payload = StringFormat("{\"status\":\"%s\",\"message\":\"%s\",\"ticket\":%s}", status, message, (string)ticket);
-    SendFeedbackToUI(payload);
+    LiveTradeStats live_stats = CalculateLiveTradeStats();
+    string trades_json = "";
+    int count = 0;
+    for(int i=PositionsTotal()-1; i>=0; i--)
+    {
+        ulong ticket=PositionGetTicket(i);
+        if(!PositionSelectByTicket(ticket) || PositionGetInteger(POSITION_MAGIC)!=g_magic_number) continue;
+        if(count>0) trades_json+=",";
+        string type=(PositionGetInteger(POSITION_TYPE)==POSITION_TYPE_BUY)?"BUY":"SELL";
+        bool is_be=(PositionGetDouble(POSITION_SL)==PositionGetDouble(POSITION_PRICE_OPEN));
+        trades_json+=StringFormat("{\"ticket\":%s,\"symbol\":\"%s\",\"type\":\"%s\",\"volume\":%.2f,\"profit\":%.2f,\"is_breakeven\":%s,\"atm_enabled\":%s}",
+            (string)ticket,PositionGetString(POSITION_SYMBOL),type,PositionGetDouble(POSITION_VOLUME),
+            PositionGetDouble(POSITION_PROFIT),is_be?"true":"false",IsAtmEnabled(ticket)?"true":"false");
+        count++;
+    }
+    return StringFormat("{\"total_pl\":%.2f,\"trades\":[%s]}",live_stats.total_pl,trades_json);
 }
 
 //+------------------------------------------------------------------+
@@ -126,54 +127,43 @@ void ProcessQtCommand(string command)
     }
 }
 
-//+------------------------------------------------------------------+
-//| ساخت JSON مخصوص پنل Qt
-//+------------------------------------------------------------------+
-string GenerateQtPanelJSON()
-{
-    LiveTradeStats live_stats = CalculateLiveTradeStats();
-    string trades_json_array = "";
-    int trade_count = 0;
-    
-    for(int i = PositionsTotal() - 1; i >= 0; i--)
-    {
-        ulong ticket = PositionGetTicket(i);
-        if(!PositionSelectByTicket(ticket) || PositionGetInteger(POSITION_MAGIC) != g_magic_number) continue;
-        
-        if(trade_count > 0) { trades_json_array += ","; }
-        
-        string type = (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY) ? "BUY" : "SELL";
-        bool is_be = (PositionGetDouble(POSITION_SL) == PositionGetDouble(POSITION_PRICE_OPEN));
-        
-        string single_trade_json = StringFormat(
-            "{\"ticket\":%s,\"symbol\":\"%s\",\"type\":\"%s\",\"volume\":%.2f,\"profit\":%.2f,\"is_breakeven\":%s, \"atm_enabled\":%s}",
-            (string)ticket, PositionGetString(POSITION_SYMBOL), type, PositionGetDouble(POSITION_VOLUME),
-            PositionGetDouble(POSITION_PROFIT), is_be ? "true" : "false", "false"
-        );
-        trades_json_array += single_trade_json;
-        trade_count++;
-    }
 
-    string payload = StringFormat("{\"total_pl\":%.2f, \"trades\":[%s]}", live_stats.total_pl, trades_json_array);
-    return payload;
-}
-
-//+------------------------------------------------------------------+
-//| OnTimer - مرکز ارتباط
-//+------------------------------------------------------------------+
-void OnTimer()
+void ProcessAutoManagement()
 {
-    string jsonData = GenerateQtPanelJSON();
-    char jsonDataAnsi[];
-    int len = StringToCharArray(jsonData, jsonDataAnsi, 0, WHOLE_ARRAY, CP_ACP);
-    if (len > 0) SendDataToUI(jsonDataAnsi);
-    
-    char command_buffer[1024];
-    int command_len;
-    while((command_len = GetNextCommand(command_buffer, 1024)) > 0)
+    if(!g_tradeRule.auto_trading_enabled || g_tradeRule.triggerPercent <= 0) return;
+    for(int i=PositionsTotal()-1; i>=0; i--)
     {
-        string command = CharArrayToString(command_buffer, 0, command_len, CP_ACP);
-        ProcessQtCommand(command);
+        ulong ticket=PositionGetTicket(i);
+        if(!PositionSelectByTicket(ticket) || PositionGetString(POSITION_SYMBOL)!=_Symbol || WasRuleApplied(ticket) || !IsAtmEnabled(ticket)) continue;
+        double tp=PositionGetDouble(POSITION_TP);
+        if(tp==0.0) continue;
+        double entry=PositionGetDouble(POSITION_PRICE_OPEN);
+        double sl=PositionGetDouble(POSITION_SL);
+        double dist=MathAbs(tp-entry);
+        if(dist<=_Point*5) continue;
+        double trigger_dist=dist*(g_tradeRule.triggerPercent/100.0);
+        bool triggered=false;
+        if(PositionGetInteger(POSITION_TYPE)==POSITION_TYPE_BUY && SymbolInfoDouble(_Symbol,SYMBOL_BID)>=entry+trigger_dist) triggered=true;
+        if(PositionGetInteger(POSITION_TYPE)==POSITION_TYPE_SELL && SymbolInfoDouble(_Symbol,SYMBOL_ASK)<=entry-trigger_dist) triggered=true;
+        if(triggered)
+        {
+            bool success=true;
+            if(g_tradeRule.closePercent>0 && g_tradeRule.closePercent<100)
+            {
+                double vol=PositionGetDouble(POSITION_VOLUME);
+                double step=SymbolInfoDouble(_Symbol,SYMBOL_VOLUME_STEP);
+                int digits=VolumeDigits(_Symbol);
+                double close_vol=floor(vol*(g_tradeRule.closePercent/100.0)/step)*step;
+                if(close_vol>=SymbolInfoDouble(_Symbol,SYMBOL_VOLUME_MIN))
+                    if(!trade.PositionClosePartial(ticket,close_vol)) success=false;
+            }
+            if(success && g_tradeRule.moveToBE && PositionGetDouble(POSITION_SL)!=entry)
+            {
+                StoreOriginalSL(ticket,sl);
+                if(!trade.PositionModify(ticket,entry,tp)) success=false;
+            }
+            if(success) MarkRuleAsApplied(ticket);
+        }
     }
 }
 

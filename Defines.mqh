@@ -186,4 +186,22 @@ struct LiveTradeStats
     int      position_count;
 };
 
+// ==================================================================
+// === بخش جدید: اضافه کردن ساختارها و متغیرهای ماژول ATM ===
+// ==================================================================
+struct TTradeRule
+{
+    double triggerPercent;
+    bool   moveToBE;
+    double closePercent;
+    bool   auto_trading_enabled;
+};
+
+TTradeRule  g_tradeRule;
+ulong       g_appliedRulesTickets[];
+ulong       g_slTickets[];
+double      g_slValues[];
+ulong       g_atmEnabledTickets[];
+string      SL_Backup_File;
+
 #endif // DEFINES_MQH
