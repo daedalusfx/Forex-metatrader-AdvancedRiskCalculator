@@ -37,7 +37,6 @@ CSpreadAtrAnalysis g_SpreadAtrPanel;
 int OnInit()
 {
    // --- راه‌اندازی ماژول ATM و پنل Qt ---
-   ShowPanel();
    SL_Backup_File = MQLInfoString(MQL_PROGRAM_NAME) + "_" + (string)ChartID() + "_SL_Backup.dat";
    LoadOriginalSLs(); // این تابع باید در SharedLogic.mqh باشد
    EventSetTimer(1);
