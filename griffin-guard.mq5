@@ -140,9 +140,8 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-   // --- بستن ماژول ATM و پنل Qt ---
-   FinalizeGUI(); 
-   SaveOriginalSLs(); // این تابع باید در SharedLogic.mqh باشد
+   // --- پاک‌سازی‌های عمومی ---
+   SaveOriginalSLs();
    EventKillTimer();
    SaveStateToFile();
    DeleteTradeLines();
@@ -150,6 +149,18 @@ void OnDeinit(const int reason)
    g_DisplayCanvas.Destroy();
    ExtDialog.Destroy(reason);
    Comment("");
+   
+   // فقط زمانی ترد گرافیکی را به طور کامل می‌بندیم که اکسپرت به
+   // دلایل دائمی در حال حذف شدن باشد (مثل بستن چارت یا حذف اکسپرت)
+   if(reason == REASON_REMOVE || reason == REASON_CHARTCLOSE || reason == REASON_CLOSE)
+   {
+      Print("Permanent deinitialization detected. Finalizing GUI thread.");
+      FinalizeGUI(); // ترد و اپلیکیشن گرافیکی را به درستی خاتمه می‌دهد
+   }
+   else
+   {
+      Print("Temporary deinitialization (reason: ", reason, "). GUI thread will remain active.");
+   }
 }
 
 //+------------------------------------------------------------------+
