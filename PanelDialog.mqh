@@ -351,10 +351,12 @@ void CPanelDialog::HandleDragEvent(const string &dragged_object)
     if(InpTPMode == TP_RR_RATIO)
     {
         // اینجا شرط کشیدن خط، با شناسه جدید چک می‌شود
-        if(is_stairway && (dragged_object == LINE_BREAKOUT_LEVEL || dragged_object == LINE_STOP_LOSS))
-        {
+        if(is_stairway && (dragged_object == LINE_BREAKOUT_LEVEL || 
+            dragged_object == LINE_STOP_LOSS   || 
+            dragged_object == LINE_PENDING_ENTRY)) // [NEW]
+            {
             UpdateDynamicLines();
-        }
+            }
         else if(!is_stairway && !InpAutoEntryPending && (dragged_object == LINE_ENTRY_PRICE || dragged_object == LINE_STOP_LOSS))
         {
             UpdateDynamicLines();
