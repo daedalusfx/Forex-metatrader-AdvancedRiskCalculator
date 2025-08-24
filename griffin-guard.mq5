@@ -36,10 +36,10 @@ CSpreadAtrAnalysis g_SpreadAtrPanel;
 //+------------------------------------------------------------------+
 int OnInit()
 {
-    InitializeGUI();
-   // --- راه‌اندازی ماژول ATM و پنل Qt ---
-   SL_Backup_File = MQLInfoString(MQL_PROGRAM_NAME) + "_" + (string)ChartID() + "_SL_Backup.dat";
-   LoadOriginalSLs(); // این تابع باید در SharedLogic.mqh باشد
+    // --- راه‌اندازی ماژول ATM و پنل Qt ---
+    SL_Backup_File = MQLInfoString(MQL_PROGRAM_NAME) + "_" + (string)ChartID() + "_SL_Backup.dat";
+    LoadOriginalSLs(); // این تابع باید در SharedLogic.mqh باشد
+   InitializeService();
    EventSetTimer(1);
 
 
@@ -155,7 +155,7 @@ void OnDeinit(const int reason)
    if(reason == REASON_REMOVE || reason == REASON_CHARTCLOSE || reason == REASON_CLOSE)
    {
       Print("Permanent deinitialization detected. Finalizing GUI thread.");
-      FinalizeGUI(); // ترد و اپلیکیشن گرافیکی را به درستی خاتمه می‌دهد
+      FinalizeService(); // ترد و اپلیکیشن گرافیکی را به درستی خاتمه می‌دهد
    }
    else
    {
@@ -194,21 +194,6 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
    {
       ExtDialog.HandleDragEvent(sparam);
    }
-}
-
-void ToggleTradeManagerVisibility()
-{
-    if(g_is_trade_manager_visible)
-    {
-        ShowGUIPanel();
-
-    }
-    else
-    {
-        HideGUIPanel();
-
-    }
-    ChartRedraw();
 }
 
 

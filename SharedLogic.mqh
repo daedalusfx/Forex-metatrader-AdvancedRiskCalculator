@@ -244,8 +244,40 @@ void ResetToIdleState()
 // ==================================================================
 bool WasRuleApplied(ulong ticket){for(int i=0;i<ArraySize(g_appliedRulesTickets);i++)if(g_appliedRulesTickets[i]==ticket)return true;return false;}
 void MarkRuleAsApplied(ulong ticket){if(WasRuleApplied(ticket))return;int size=ArraySize(g_appliedRulesTickets);ArrayResize(g_appliedRulesTickets,size+1);g_appliedRulesTickets[size]=ticket;}
-bool IsAtmEnabled(ulong ticket){for(int i=0; i<ArraySize(g_atmEnabledTickets); i++)if(g_atmEnabledTickets[i] == ticket) return true;return false;}
+//bool IsAtmEnabled(ulong ticket){for(int i=0; i<ArraySize(g_atmEnabledTickets); i++)if(g_atmEnabledTickets[i] == ticket) return true;return false;}
 int FindSLIndex(ulong ticket){for(int i=0;i<ArraySize(g_slTickets);i++)if(g_slTickets[i]==ticket)return i;return -1;}
+
+
+
+
+bool IsAtmEnabled(ulong ticket)
+{
+    for(int i=0; i<ArraySize(g_atmEnabledTickets); i++)
+        if(g_atmEnabledTickets[i] == ticket) return true;
+    return false;
+}
+
+void ToggleAtmForTicket(ulong ticket, bool enable)
+{
+    bool exists = IsAtmEnabled(ticket);
+    if(enable && !exists)
+    {
+        int size = ArraySize(g_atmEnabledTickets);
+        ArrayResize(g_atmEnabledTickets, size + 1);
+        g_atmEnabledTickets[size] = ticket;
+    }
+    else if(!enable && exists)
+    {
+        for(int i=0; i<ArraySize(g_atmEnabledTickets); i++)
+        {
+            if(g_atmEnabledTickets[i] == ticket)
+            {
+                ArrayRemove(g_atmEnabledTickets, i, 1);
+                break;
+            }
+        }
+    }
+}
 
 // ==================================================================
 // === بخش ۲: توابع مدیریت فایل و ذخیره‌سازی ===

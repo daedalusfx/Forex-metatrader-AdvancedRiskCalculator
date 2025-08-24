@@ -106,7 +106,6 @@ protected:
     void              OnClickRiskPreset2Pending(void);
     void              OnClickRiskPreset3Pending(void);
     void              UpdateRiskButtonStates(string panel_type);
-    void              OnClickToggleManager(void);
         // --- پایان بخش جدید ---
 };
 
@@ -325,10 +324,6 @@ bool CPanelDialog::CreateStairwayPanel(int x, int y)
         // پنل را بزرگتر کنید تا کنترل‌های جدید جا شوند
         m_panel_stairway.Height(115);
 
-    if(!m_btn_toggle_manager.Create(m_chart_id, "ToggleManagerBtn", m_subwin, x + 10, y + 120, x + 210, y + 145)) return false;
-    m_btn_toggle_manager.Text("ATM");
-    m_btn_toggle_manager.ColorBackground(InpOrderButtonColor);
-    if(!Add(m_btn_toggle_manager)) return false;
 
     return true;
 }
@@ -702,23 +697,6 @@ void CPanelDialog::SetStatusMessage(string text, string panel_type, color text_c
     }
     ChartRedraw();
 }
-void CPanelDialog::OnClickToggleManager(void)
-{
-    g_is_trade_manager_visible = !g_is_trade_manager_visible;
-    
 
-    if(g_is_trade_manager_visible)
-    {
-        m_btn_toggle_manager.Text("Close ATM");
-        m_btn_toggle_manager.ColorBackground(InpCancelButtonColor);
-    }
-    else
-    {
-        m_btn_toggle_manager.Text("ATM Panel");
-        m_btn_toggle_manager.ColorBackground(InpOrderButtonColor);
-    }
-    
-    ToggleTradeManagerVisibility(); 
-}
 
 #endif // PANELDIALOG_MQH

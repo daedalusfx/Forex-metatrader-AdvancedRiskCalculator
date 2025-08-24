@@ -22,12 +22,13 @@
 
 // --- وارد کردن توابع DLL
 #import "GriffinATM\\libGriffinATM.dll"
-void InitializeGUI();
-void FinalizeGUI();
+void InitializeService();
+void FinalizeService();
 void ShowGUIPanel();
 void HideGUIPanel();
-void SendDataToUI(char& data[]);
+void SendDataToService(char& data[]);
 int GetNextCommand(char &data[], int max_len);
+void BroadcastFeedback(string jsonData); // تابع جدید را اینجا اضافه کنید
 void SendFeedbackToUI(string jsonData);
 #import
 
@@ -42,7 +43,11 @@ void OnTimer()
 {
     string jsonData = GenerateQtPanelJSON();
     char jsonDataAnsi[];
-    if(StringToCharArray(jsonData, jsonDataAnsi, 0, WHOLE_ARRAY, CP_ACP) > 0) SendDataToUI(jsonDataAnsi);
+    // --- START: DEBUG CODE ---
+Print("OnTimer event fired! Preparing to send data.");
+Print("Generated JSON: ", jsonData);
+// --- END: DEBUG CODE ---
+    if(StringToCharArray(jsonData, jsonDataAnsi, 0, WHOLE_ARRAY, CP_ACP) > 0) SendDataToService(jsonDataAnsi);
     
     char cmd_buffer[1024];
     int cmd_len;
@@ -55,9 +60,12 @@ void OnTimer()
 }
 
 
-void SendFeedbackToQt(string status, string message, ulong ticket=0){string p=StringFormat("{\"status\":\"%s\",\"message\":\"%s\",\"ticket\":%s}",status,message,(string)ticket);SendFeedbackToUI(p);}
-
-
+void SendFeedbackToQt(string status, string message, ulong ticket=0)
+{
+    string feedback_data = StringFormat("{\"status\":\"%s\",\"message\":\"%s\",\"ticket\":%s}", status, message, (string)ticket);
+    string final_json = StringFormat("{\"type\":\"feedback\",\"data\":%s}", feedback_data);
+    BroadcastFeedback(final_json);
+}
 string GenerateQtPanelJSON()
 {
     LiveTradeStats live_stats = CalculateLiveTradeStats();
@@ -75,7 +83,21 @@ string GenerateQtPanelJSON()
             PositionGetDouble(POSITION_PROFIT),is_be?"true":"false",IsAtmEnabled(ticket)?"true":"false");
         count++;
     }
-    return StringFormat("{\"total_pl\":%.2f,\"trades\":[%s]}",live_stats.total_pl,trades_json);
+    // تنظیمات را به صورت رشته JSON بسازید
+string settings_json = StringFormat("{\"triggerPercent\":%.1f,\"closePercent\":%.1f,\"moveToBE\":%s}",
+    g_tradeRule.triggerPercent, 
+    g_tradeRule.closePercent, 
+    g_tradeRule.moveToBE ? "true" : "false");
+
+// داده نهایی را در ساختار جدید بسته‌بندی کنید
+string data_json = StringFormat("{\"total_pl\":%.2f,\"symbol\":\"%s\",\"trades\":[%s],\"settings\":%s}",
+live_stats.total_pl,
+_Symbol, // نام نماد هم اینجا اضافه می‌شود
+trades_json,
+settings_json);
+
+// پیام نهایی را با فیلد type بسازید
+return StringFormat("{\"type\":\"trade_data\",\"data\":%s}", data_json);
 }
 
 //+------------------------------------------------------------------+
@@ -126,6 +148,13 @@ void ProcessQtCommand(string command)
     {
         for(int i = PositionsTotal() - 1; i >= 0; i--) if(PositionSelectByTicket(PositionGetTicket(i)) && PositionGetInteger(POSITION_MAGIC) == g_magic_number && PositionGetDouble(POSITION_PROFIT) < 0) trade.PositionClose(PositionGetTicket(i));
         SendFeedbackToQt("success", "دستور بستن معاملات ضررده ارسال شد.", 0);
+    }
+    else if(action == "toggle_atm_trade")
+    {
+        bool atm_state = GetJsonBool(command, "atm_trade_state");
+        ToggleAtmForTicket(ticket, atm_state);
+        string state_text = atm_state ? "فعال" : "غیرفعال";
+        SendFeedbackToQt("success", "مدیریت خودکار برای معامله " + (string)ticket + " " + state_text + " شد.", ticket);
     }
 }
 
