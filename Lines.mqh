@@ -124,10 +124,39 @@ void CreateTradeLines()
     bool is_buy = (state == STATE_PREP_MARKET_BUY || state == STATE_PREP_PENDING_BUY || state == STATE_PREP_STAIRWAY_BUY);
     if (state == STATE_PREP_STAIRWAY_BUY || state == STATE_PREP_STAIRWAY_SELL)
     {
-        double initial_pips = 20.0;
-        double breakout_price = is_buy ? ask + (initial_pips * pip_value) : bid - (initial_pips * pip_value);
-        double pending_entry_price = is_buy ? ask + (initial_pips / 2 * pip_value) : bid - (initial_pips / 2 * pip_value);
-        double sl_price = is_buy ? pending_entry_price - (initial_pips * pip_value) : pending_entry_price + (initial_pips * pip_value);
+
+    int atr_handle = iATR(_Symbol, _Period, (int)InpAtrPeriod);
+if(atr_handle == INVALID_HANDLE)
+{
+    Print("خطا در ایجاد دستگیره ATR! بررسی کنید که اندیکاتور ATR وجود داشته باشد.");
+    return; // از ادامه تابع جلوگیری کن چون ATR را نداریم
+}
+
+// 2. آماده‌سازی آرایه (بافر) و کپی کردن داده از دستگیره
+double atr_buffer[1];
+double current_atr = 0;
+
+if(CopyBuffer(atr_handle, 0, 0, 1, atr_buffer) > 0)
+{
+    current_atr = atr_buffer[0]; // مقدار ATR در اینجا ذخیره می‌شود
+}
+else
+{
+    Print("خطا در کپی کردن بافر ATR! کد خطا: ", GetLastError());
+    return; // از ادامه تابع جلوگیری کن
+}
+
+
+
+// اگر ATR صفر بود (برای جلوگیری از خطا)، یک مقدار پیش‌فرض کوچک در نظر می‌گیریم
+if(current_atr <= 0) current_atr = SymbolInfoDouble(_Symbol, SYMBOL_POINT) * 100;
+
+
+
+    // 2. موقعیت خطوط را بر اساس ATR و ضرایب ورودی محاسبه می‌کنیم
+    double breakout_price = is_buy ? ask + (current_atr * InpAtrBreakoutMultiplier) : bid - (current_atr * InpAtrBreakoutMultiplier);
+    double pending_entry_price  = is_buy ? ask + (current_atr * InpAtrEntryMultiplier) : bid - (current_atr * InpAtrEntryMultiplier);
+    double sl_price       = is_buy ? pending_entry_price - (current_atr * InpAtrSlMultiplier) : pending_entry_price + (current_atr * InpAtrSlMultiplier);
 
         // اینجا از شناسه جدید برای خط شکست استفاده شده است
         CreateLine(LINE_BREAKOUT_LEVEL, "", breakout_price, InpWarningColor, true); // خط شکست
@@ -137,21 +166,47 @@ void CreateTradeLines()
         UpdateDynamicLines();
     }
     else
+{
+    // گرفتن ATR مثل حالت بالا
+    int atr_handle = iATR(_Symbol, _Period, (int)InpAtrPeriod);
+    if(atr_handle == INVALID_HANDLE)
     {
-        double initial_sl_pips = 20.0;
-        double initial_distance_pips = 50.0;
-        double entry_price_base = is_buy ? ask + (initial_distance_pips * pip_value) : bid - (initial_distance_pips * pip_value);
-        double sl_price_base = is_buy ? entry_price_base - (initial_sl_pips * pip_value) : entry_price_base + (initial_sl_pips * pip_value);
-        bool is_pending = CurrentStateIsPending();
-        double entry_price = is_pending ? entry_price_base : (is_buy ? ask : bid);
-        bool is_entry_selectable = is_pending;
-        CreateLine(LINE_ENTRY_PRICE, "", entry_price, InpEntryLineColor, is_entry_selectable);
-        CreateLine(LINE_STOP_LOSS, "", sl_price_base, InpStopLineColor, true);
-        bool is_tp_selectable = (InpTPMode == TP_MANUAL);
-        double risk_dist = MathAbs(entry_price - sl_price_base);
-        double tp_price = is_buy ? entry_price + (risk_dist * InpTP_RR_Value) : entry_price - (risk_dist * InpTP_RR_Value);
-        CreateLine(LINE_TAKE_PROFIT, "", tp_price, InpProfitLineColor, is_tp_selectable);
+        Print("خطا در ایجاد دستگیره ATR!");
+        return;
     }
+
+    double atr_buffer[1];
+    double current_atr = 0;
+    if(CopyBuffer(atr_handle, 0, 0, 1, atr_buffer) > 0)
+        current_atr = atr_buffer[0];
+    else
+    {
+        Print("خطا در کپی کردن بافر ATR! کد خطا: ", GetLastError());
+        return;
+    }
+    if(current_atr <= 0) current_atr = SymbolInfoDouble(_Symbol, SYMBOL_POINT) * 100;
+
+    // حالا به جای pip_value ثابت از ATR استفاده می‌کنیم
+    double entry_price_base = is_buy 
+        ? ask + (current_atr * InpAtrEntryMultiplier) 
+        : bid - (current_atr * InpAtrEntryMultiplier);
+
+    double sl_price_base = is_buy 
+        ? entry_price_base - (current_atr * InpAtrSlMultiplier) 
+        : entry_price_base + (current_atr * InpAtrSlMultiplier);
+
+    bool is_pending = CurrentStateIsPending();
+    double entry_price = is_pending ? entry_price_base : (is_buy ? ask : bid);
+    bool is_entry_selectable = is_pending;
+    CreateLine(LINE_ENTRY_PRICE, "", entry_price, InpEntryLineColor, is_entry_selectable);
+    CreateLine(LINE_STOP_LOSS, "", sl_price_base, InpStopLineColor, true);
+
+    bool is_tp_selectable = (InpTPMode == TP_MANUAL);
+    double risk_dist = MathAbs(entry_price - sl_price_base);
+        double tp_price = is_buy ? entry_price + (risk_dist * InpTP_RR_Value) : entry_price - (risk_dist * InpTP_RR_Value);
+    CreateLine(LINE_TAKE_PROFIT, "", tp_price, InpProfitLineColor, is_tp_selectable);
+}
+
 }
 //+------------------------------------------------------------------+
 //| (کامل) به‌روزرسانی لیبل‌ها برای تمام حالت‌ها                      |
