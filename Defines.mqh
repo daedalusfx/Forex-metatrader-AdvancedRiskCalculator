@@ -21,7 +21,11 @@ enum ETradeState {
 };
 enum ENUM_Risk_Mode { RISK_PERCENT, RISK_MONEY };
 
-
+input group "تنظیمات ایجاد خطوط (ATR Based)"
+input double InpAtrPeriod = 14;                              // دوره زمانی ATR
+input double InpAtrBreakoutMultiplier = 1.0;                 // ضریب ATR برای فاصله خط شکست از قیمت فعلی
+input double InpAtrEntryMultiplier = 0.5;                    // ضریب ATR برای فاصله خط ورود از قیمت فعلی
+input double InpAtrSlMultiplier = 1.0;                       // ضریب ATR برای فاصله حد ضرر از خط ورود
 
 // --- (کد جدید) ورودی‌های مربوط به استراتژی پلکانی ---
 input group "تنظیمات ورود پلکانی (Stairway Entry)"

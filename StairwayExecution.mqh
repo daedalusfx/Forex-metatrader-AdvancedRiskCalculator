@@ -155,32 +155,43 @@ void ManageStairwayExecution()
 
                     if(lot_step2 >= SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN))
                     {
-                       // --- (کد جدید) ---
-                       // به جای اجرای Market، یک سفارش Limit دیگر برای پله دوم ارسال می‌کنیم
-                       MqlTradeRequest request_step2;
-                       MqlTradeResult  result_step2;
-                       ZeroMemory(request_step2);
-                       ZeroMemory(result_step2);
-                       
-                       request_step2.action = TRADE_ACTION_PENDING;
-                       request_step2.symbol = _Symbol;
-                       request_step2.volume = lot_step2;
-                       request_step2.price = GetLinePrice(LINE_PENDING_ENTRY); // همان قیمت ورود پله اول
-                       request_step2.sl = GetLinePrice(LINE_STOP_LOSS);
-                       request_step2.tp = GetLinePrice(LINE_TAKE_PROFIT);
-                       request_step2.type = is_buy_setup ? ORDER_TYPE_BUY_LIMIT : ORDER_TYPE_SELL_LIMIT;
-                       request_step2.magic = g_magic_number;
-                       request_step2.comment = "Stairway_Step2_Pending";
-                       
-                       if(!trade.OrderSend(request_step2, result_step2))
+                        double step1_price = GetLinePrice(LINE_PENDING_ENTRY);
+                        double sl = GetLinePrice(LINE_STOP_LOSS);
+                        double tp = GetLinePrice(LINE_TAKE_PROFIT);
+                        double calculated_step2_price = CalculateStairwayStep2Entry(sl, tp, step1_price, current_pos_vol, lot_step2, InpTP_RR_Value);
+
+                       if(calculated_step2_price > 0)
                        {
-                           Alert(StringFormat("ارسال سفارش معلق پله دوم با خطا مواجه شد. Comment: %s", result_step2.comment));
+                            MqlTradeRequest request_step2;
+                            MqlTradeResult  result_step2;
+                            ZeroMemory(request_step2);
+                            ZeroMemory(result_step2);
+                            
+                            request_step2.action = TRADE_ACTION_PENDING;
+                            request_step2.symbol = _Symbol;
+                            request_step2.volume = lot_step2;
+                            request_step2.price = calculated_step2_price; // استفاده از قیمت محاسبه شده
+                            request_step2.sl = sl;
+                            request_step2.tp = tp;
+                            request_step2.type = is_buy_setup ? ORDER_TYPE_BUY_LIMIT : ORDER_TYPE_SELL_LIMIT;
+                            request_step2.magic = g_magic_number;
+                            request_step2.comment = "Stairway_Step2_Auto_Calc";
+                   
+                            if(!trade.OrderSend(request_step2, result_step2))
+                            {
+                                Alert(StringFormat("ارسال سفارش معلق پله دوم با خطا مواجه شد. Comment: %s", result_step2.comment));
+                            }
+                            else
+                            {
+                                // پیام موفقیت‌آمیز را دقیق‌تر می‌کنیم
+                                Alert(StringFormat("سفارش معلق پله دوم با قیمت محاسبه شده %.5f با موفقیت ارسال شد.", calculated_step2_price));
+                            }
                        }
                        else
                        {
-                           Alert("سفارش معلق پله دوم با موفقیت ارسال شد.");
+                           // اگر محاسبه ممکن نبود، به کاربر اطلاع می‌دهیم
+                           Alert("محاسبه قیمت برای پله دوم ممکن نبود. پله دوم ارسال نشد.");
                        }
-                       // --- (پایان کد جدید) ---
                     }
                 }
                 // سناریوی ۲: اصلاحی (پله ۱ فعال نشده ولی کندل تایید شده)
@@ -269,6 +280,51 @@ void ManageStairwayHiddenSL()
             }
         }
     }
+}
+
+//+------------------------------------------------------------------+
+//| محاسبه خودکار قیمت ورود پله دوم برای رسیدن به R:R دقیق         |
+//+------------------------------------------------------------------+
+double CalculateStairwayStep2Entry(double sl_price, double tp_price, double step1_entry, double step1_lot, double step2_lot, double rr_ratio)
+{
+    // --- جلوگیری از تقسیم بر صفر و ورودی‌های نامعتبر ---
+    if(step2_lot <= 0 || rr_ratio <= 0)
+    {
+        Print("خطا در محاسبه ورود پله دوم: حجم لات یا نسبت R:R نامعتبر است.");
+        return 0;
+    }
+
+    double total_lot = step1_lot + step2_lot;
+
+    // --- محاسبه میانگین قیمت ورود مورد نیاز برای کل پوزیشن ---
+    double required_avg_entry = 0;
+    bool is_buy = (tp_price > sl_price);
+
+    if(is_buy)
+    {
+       // بر اساس فرمول: AvgEntry = (TP + R*SL) / (R+1)
+       required_avg_entry = (tp_price + (rr_ratio * sl_price)) / (rr_ratio + 1.0);
+    }
+    else // Sell
+    {
+       // بر اساس فرمول: AvgEntry = (TP*R + SL) / (R+1) - این فرمول معادل حالت Buy است اگر با قدر مطلق کار کنیم
+       required_avg_entry = (tp_price + (rr_ratio * sl_price)) / (rr_ratio + 1.0);
+    }
+
+    // --- محاسبه قیمت ورود پله دوم بر اساس میانگین مورد نیاز ---
+    // بر اساس فرمول: E2 = ( (AvgEntry * TotalLot) - (E1 * L1) ) / L2
+    double step2_entry = ((required_avg_entry * total_lot) - (step1_entry * step1_lot)) / step2_lot;
+    
+    // --- اعتبارسنجی نهایی ---
+    // قیمت محاسبه شده باید منطقی باشد (مثلاً بین TP و SL قرار گیرد)
+    if( (is_buy && (step2_entry <= sl_price || step2_entry >= tp_price)) ||
+        (!is_buy && (step2_entry >= sl_price || step2_entry <= tp_price)) )
+    {
+        Print("قیمت محاسبه شده برای پله دوم (", DoubleToString(step2_entry, 5), ") خارج از محدوده منطقی است. عملیات لغو شد.");
+        return 0;
+    }
+
+    return NormalizeDouble(step2_entry, _Digits);
 }
 
 #endif // STAIRWAYEXECUTION_MQH
