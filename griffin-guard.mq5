@@ -140,9 +140,6 @@ int OnInit()
 void OnDeinit(const int reason)
 {
    // --- پاک‌سازی‌های عمومی ---
-   SaveOriginalSLs();
-   EventKillTimer();
-   SaveStateToFile();
    DeleteTradeLines();
    g_SpreadAtrPanel.Deinitialize();
    g_DisplayCanvas.Destroy();
@@ -160,6 +157,9 @@ void OnDeinit(const int reason)
    {
       Print("Temporary deinitialization (reason: ", reason, "). GUI thread will remain active.");
    }
+   SaveOriginalSLs();
+   EventKillTimer();
+   SaveStateToFile();
 }
 
 //+------------------------------------------------------------------+
