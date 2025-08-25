@@ -12,7 +12,6 @@
 
 //--- فایل‌های پروژه به ترتیب وابستگی
 #include "Defines.mqh"
-#include "QtBridge.mqh" // ماژول جدید ATM و پنل Qt
 #include "PanelDialog.mqh"
 #include "DisplayCanvas.mqh"
 #include "StateManager.mqh"
@@ -29,6 +28,7 @@ CSpreadAtrAnalysis g_SpreadAtrPanel;
 #include "MarketExecution.mqh"
 #include "PendingExecution.mqh"
 #include "StairwayExecution.mqh"
+#include "QtBridge.mqh" // ماژول جدید ATM و پنل Qt
 
 
 //+------------------------------------------------------------------+
@@ -36,12 +36,6 @@ CSpreadAtrAnalysis g_SpreadAtrPanel;
 //+------------------------------------------------------------------+
 int OnInit()
 {
-    // --- راه‌اندازی ماژول ATM و پنل Qt ---
-    SL_Backup_File = MQLInfoString(MQL_PROGRAM_NAME) + "_" + (string)ChartID() + "_SL_Backup.dat";
-    LoadOriginalSLs(); // این تابع باید در SharedLogic.mqh باشد
-   InitializeService();
-   EventSetTimer(1);
-
 
    if(!ExtDialog.Create(0, "griffin-guard-beta", 0, 10, 30))
    {
@@ -133,6 +127,11 @@ int OnInit()
    
    UpdateDisplayData();
    ChartRedraw();
+       // --- راه‌اندازی ماژول ATM و پنل Qt ---
+       SL_Backup_File = MQLInfoString(MQL_PROGRAM_NAME) + "_" + (string)ChartID() + "_SL_Backup.dat";
+       LoadOriginalSLs(); // این تابع باید در SharedLogic.mqh باشد
+      InitializeService();
+      EventSetTimer(1);
    return(INIT_SUCCEEDED);
 }
 //+------------------------------------------------------------------+
