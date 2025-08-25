@@ -127,7 +127,6 @@ EVENT_MAP_BEGIN(CPanelDialog)
     ON_EVENT(ON_CLICK, m_btn_risk_preset1_pending, OnClickRiskPreset1Pending)
     ON_EVENT(ON_CLICK, m_btn_risk_preset2_pending, OnClickRiskPreset2Pending)
     ON_EVENT(ON_CLICK, m_btn_risk_preset3_pending, OnClickRiskPreset3Pending)
-    ON_EVENT(ON_CLICK, m_btn_toggle_manager, OnClickToggleManager)
 EVENT_MAP_END(CAppDialog)
 
 //--- سازنده و مخرب

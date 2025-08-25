@@ -43,10 +43,6 @@ void OnTimer()
 {
     string jsonData = GenerateQtPanelJSON();
     char jsonDataAnsi[];
-    // --- START: DEBUG CODE ---
-Print("OnTimer event fired! Preparing to send data.");
-Print("Generated JSON: ", jsonData);
-// --- END: DEBUG CODE ---
     if(StringToCharArray(jsonData, jsonDataAnsi, 0, WHOLE_ARRAY, CP_ACP) > 0) SendDataToService(jsonDataAnsi);
     
     char cmd_buffer[1024];
